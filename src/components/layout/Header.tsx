@@ -50,8 +50,11 @@ export function Header() {
 
     // Listen for global open auth trigger
     const handleOpenAuth = (e: any) => {
+      const hasAuthHistory = typeof window !== 'undefined' && localStorage.getItem('meducil_has_auth_history') === 'true';
       if (e.detail && e.detail.mode) {
         setAuthMode(e.detail.mode);
+      } else if (hasAuthHistory) {
+        setAuthMode('login');
       } else {
         setAuthMode('signup');
       }
@@ -81,30 +84,71 @@ export function Header() {
           setAuthError('Password must be at least 6 characters');
           return;
         }
-        await signUpUser(authForm.name, authForm.email, authForm.phone, authForm.password);
-        setAuthSuccess('Account registered successfully!');
-        setTimeout(() => {
-          setIsAuthModalOpen(false);
-          setAuthForm({ name: '', email: '', phone: '', password: '' });
-          
-          // Complete pending cart addition if present
-          const pending = localStorage.getItem('meducil_pending_cart_item');
-          if (pending) {
-            try {
-              const { medicine, quantity } = JSON.parse(pending);
-              addToCart(medicine, quantity);
-              localStorage.removeItem('meducil_pending_cart_item');
-            } catch (err) {
-              console.error('Failed to add pending cart item:', err);
-            }
+        try {
+          await signUpUser(authForm.name, authForm.email, authForm.phone, authForm.password);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('meducil_has_auth_history', 'true');
           }
-        }, 1500);
+          setAuthSuccess('Account registered successfully!');
+          setTimeout(() => {
+            setIsAuthModalOpen(false);
+            setAuthForm({ name: '', email: '', phone: '', password: '' });
+            
+            // Complete pending cart addition if present
+            const pending = localStorage.getItem('meducil_pending_cart_item');
+            if (pending) {
+              try {
+                const { medicine, quantity } = JSON.parse(pending);
+                addToCart(medicine, quantity);
+                localStorage.removeItem('meducil_pending_cart_item');
+              } catch (err) {
+                console.error('Failed to add pending cart item:', err);
+              }
+            }
+          }, 1500);
+        } catch (err: any) {
+          if (err.message && err.message.includes('already exists')) {
+            // Graceful sign-in fallback: attempt to authenticate directly using the credentials entered
+            try {
+              await signInUser(authForm.email, authForm.password);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('meducil_has_auth_history', 'true');
+              }
+              setAuthSuccess('Welcome back! Logging in...');
+              setTimeout(() => {
+                setIsAuthModalOpen(false);
+                setAuthForm({ name: '', email: '', phone: '', password: '' });
+                
+                // Complete pending cart addition if present
+                const pending = localStorage.getItem('meducil_pending_cart_item');
+                if (pending) {
+                  try {
+                    const { medicine, quantity } = JSON.parse(pending);
+                    addToCart(medicine, quantity);
+                    localStorage.removeItem('meducil_pending_cart_item');
+                  } catch (err) {
+                    console.error('Failed to add pending cart item:', err);
+                  }
+                }
+              }, 1500);
+            } catch (signInErr: any) {
+              // Credentials mismatch or user not found, switch tab to login and prompt them
+              setAuthMode('login');
+              setAuthError('An account with this email address already exists. Please enter your password to log in.');
+            }
+          } else {
+            throw err;
+          }
+        }
       } else {
         if (!authForm.email.trim() || !authForm.password.trim()) {
           setAuthError('Email and Password are required');
           return;
         }
         await signInUser(authForm.email, authForm.password);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('meducil_has_auth_history', 'true');
+        }
         setAuthSuccess('Welcome back!');
         setTimeout(() => {
           setIsAuthModalOpen(false);
@@ -158,15 +202,16 @@ export function Header() {
       >
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
         <Link href="/" className="flex items-center select-none shrink-0">
-          <div className="relative h-16 w-52 overflow-hidden select-none shrink-0 -my-3">
+          <div className="relative h-16 w-52 sm:w-60 md:w-64 overflow-hidden select-none shrink-0 -my-3 -ml-3 sm:-ml-2 md:ml-0">
             <Image
               src="/logo-main.png"
               alt="Meducil Logo"
               fill
-              className="object-contain transition-all duration-300"
+              className="object-contain object-left transition-all duration-300"
               style={{
                 filter: pathname === '/' && !isScrolled ? 'brightness(0) invert(1)' : 'none',
-                transform: 'scale(1.95)',
+                transform: 'scale(2.0)',
+                transformOrigin: 'left center',
               }}
               priority
             />

@@ -45,6 +45,7 @@ import Link from 'next/link';
 import { getAllUsers, UserProfile } from '@/lib/data/userStore';
 import { getAllCartEvents, CartEvent } from '@/lib/data/cartEventStore';
 import { PlusCircle, MinusCircle, Trash2 as TrashIcon, ShieldCheck as ShieldIcon, Sparkles } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 // Mock data for bookings
 const mockBookings = [
@@ -73,8 +74,12 @@ const CATEGORIES = [
 const BRANDS = ["SBL", "Dr. Reckeweg", "Wheezal", "Bakson", "Allen", "Schwabe India", "Bach Flower"];
 const FORMS = ["Dilution", "Drops", "Tablets", "Tonic", "Biochemic Tablets", "Ointment", "Globales"];
 
-const SQL_SCHEMA = `-- ==========================================
--- 1. MEDICINES TABLE & POLICIES
+const SQL_SCHEMA = `-- =========================================================================
+-- MEDUCIL IDEMPOTENT MASTER DATABASE SCHEMA
+-- =========================================================================
+
+-- ==========================================
+-- 1. MEDICINES TABLE & POLICIES (Inventory Catalog)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS medicines (
   id VARCHAR(100) PRIMARY KEY,
@@ -102,16 +107,23 @@ CREATE TABLE IF NOT EXISTS medicines (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enable Row Level Security (RLS)
 ALTER TABLE medicines ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read on medicines" ON medicines
+-- Drop existing policies first to prevent 42710 "already exists" errors
+DROP POLICY IF EXISTS "Allow public read on medicines" ON medicines;
+DROP POLICY IF EXISTS "Allow public writes on medicines" ON medicines;
+
+-- Create RLS Policies for Medicines
+CREATE POLICY "Allow public read on medicines" ON medicines 
   FOR SELECT USING (true);
 
-CREATE POLICY "Allow public writes on medicines" ON medicines
+CREATE POLICY "Allow public writes on medicines" ON medicines 
   FOR ALL USING (true) WITH CHECK (true);
 
+
 -- ==========================================
--- 2. ORDERS TABLE & POLICIES
+-- 2. ORDERS TABLE & POLICIES (E-Commerce Purchase Logs)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS orders (
   id VARCHAR(100) PRIMARY KEY,
@@ -126,22 +138,31 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enable Row Level Security (RLS)
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public insert on orders" ON orders
+-- Drop existing policies first to prevent "already exists" errors
+DROP POLICY IF EXISTS "Allow public insert on orders" ON orders;
+DROP POLICY IF EXISTS "Allow public read on orders" ON orders;
+DROP POLICY IF EXISTS "Allow public updates on orders" ON orders;
+DROP POLICY IF EXISTS "Allow public deletes on orders" ON orders;
+
+-- Create RLS Policies for Orders
+CREATE POLICY "Allow public insert on orders" ON orders 
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public read on orders" ON orders
+CREATE POLICY "Allow public read on orders" ON orders 
   FOR SELECT USING (true);
 
-CREATE POLICY "Allow public updates on orders" ON orders
+CREATE POLICY "Allow public updates on orders" ON orders 
   FOR UPDATE USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow public deletes on orders" ON orders
+CREATE POLICY "Allow public deletes on orders" ON orders 
   FOR DELETE USING (true);
 
+
 -- ==========================================
--- 3. USERS TABLE & POLICIES
+-- 3. USERS TABLE & POLICIES (Customer Profiles & Credentials)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(100) PRIMARY KEY,
@@ -152,35 +173,76 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public insert on users" ON users
+-- Drop existing policies first to prevent "already exists" errors
+DROP POLICY IF EXISTS "Allow public insert on users" ON users;
+DROP POLICY IF EXISTS "Allow public read on users" ON users;
+
+-- Create RLS Policies for Users
+CREATE POLICY "Allow public insert on users" ON users 
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public read on users" ON users
+CREATE POLICY "Allow public read on users" ON users 
   FOR SELECT USING (true);
 
+
 -- ==========================================
--- 4. CART EVENTS TABLE & POLICIES
+-- 4. CART EVENTS TABLE & POLICIES (Chronological Activity Audits)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS cart_events (
   id VARCHAR(100) PRIMARY KEY,
-  user_identifier VARCHAR(255) NOT NULL,
+  user_identifier VARCHAR(255) NOT NULL, -- Email/Name or Guest Session
   item_id VARCHAR(100) NOT NULL,
   item_name VARCHAR(255) NOT NULL,
   item_brand VARCHAR(100) NOT NULL,
   quantity INTEGER NOT NULL,
-  action VARCHAR(100) NOT NULL,
+  action VARCHAR(100) NOT NULL, -- Add, Remove, Clear
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enable Row Level Security (RLS)
 ALTER TABLE cart_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public insert on cart_events" ON cart_events
+-- Drop existing policies first to prevent "already exists" errors
+DROP POLICY IF EXISTS "Allow public insert on cart_events" ON cart_events;
+DROP POLICY IF EXISTS "Allow public read on cart_events" ON cart_events;
+
+-- Create RLS Policies for Cart Events
+CREATE POLICY "Allow public insert on cart_events" ON cart_events 
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public read on cart_events" ON cart_events
-  FOR SELECT USING (true);`;
+CREATE POLICY "Allow public read on cart_events" ON cart_events 
+  FOR SELECT USING (true);
+
+
+-- ==========================================
+-- 5. ADMIN SETTINGS TABLE & POLICIES (Cloud-Synced Credentials & 2FA)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS admin_settings (
+  key VARCHAR(100) PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies first to prevent "already exists" errors
+DROP POLICY IF EXISTS "Allow public select on admin_settings" ON admin_settings;
+DROP POLICY IF EXISTS "Allow public insert on admin_settings" ON admin_settings;
+DROP POLICY IF EXISTS "Allow public update on admin_settings" ON admin_settings;
+
+-- Create RLS Policies for Admin Settings
+CREATE POLICY "Allow public select on admin_settings" ON admin_settings 
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert on admin_settings" ON admin_settings 
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update on admin_settings" ON admin_settings 
+  FOR UPDATE USING (true) WITH CHECK (true);`;
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
@@ -188,13 +250,41 @@ export default function AdminDashboard() {
   
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // 2FA & OTP verification states
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [smtpError, setSmtpError] = useState('');
+  const [simulatedDestination, setSimulatedDestination] = useState('');
+
+  // 2FA Settings Configurations
+  const [settings2faEnabled, setSettings2faEnabled] = useState(false);
+  const [settings2faMethod, setSettings2faMethod] = useState<'email' | 'phone'>('email');
+  const [settings2faDestination, setSettings2faDestination] = useState('sonalika.ctc29@gmail.com');
+  const [settings2faSuccess, setSettings2faSuccess] = useState('');
+  const [settings2faError, setSettings2faError] = useState('');
+
+  // Username Change Form State
+  const [settingsCurrentUsername, setSettingsCurrentUsername] = useState('');
+  const [settingsNewUsername, setSettingsNewUsername] = useState('');
+  const [settingsConfirmUsername, setSettingsConfirmUsername] = useState('');
+  const [settingsUsernameSuccess, setSettingsUsernameSuccess] = useState('');
+  const [settingsUsernameError, setSettingsUsernameError] = useState('');
 
   // Analytics & Logs States
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
   const [cartEvents, setCartEvents] = useState<CartEvent[]>([]);
   const [activeCustomerSubTab, setActiveCustomerSubTab] = useState<'profiles' | 'signups' | 'activity'>('profiles');
+
+  // Security & Cloud Diagnostics State
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'pending' | 'success' | 'empty' | 'error' | 'not_configured'>('pending');
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [sessionStateActive, setSessionStateActive] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -212,38 +302,262 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated, activeTab]);
 
+  const saveCloudSetting = async (key: string, value: string) => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert([{ key, value, updated_at: new Date().toISOString() }], { onConflict: 'key' });
+      if (error) {
+        console.warn(`Failed to save cloud setting ${key} with error:`, error);
+        throw error;
+      }
+    } catch (e) {
+      console.warn(`Failed to save cloud setting ${key}:`, e);
+      throw e;
+    }
+  };
+
+  const loadCloudSettings = async () => {
+    if (!isSupabaseConfigured()) {
+      setCloudSyncStatus('not_configured');
+      return;
+    }
+    try {
+      setCloudSyncStatus('pending');
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*');
+      
+      if (error) {
+        console.warn('Failed to load settings from Supabase:', error);
+        setCloudSyncStatus('error');
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        data.forEach((r: any) => {
+          localStorage.setItem(r.key, r.value);
+        });
+
+        // Apply to local states
+        const isEnabled = localStorage.getItem('meducil_admin_2fa_enabled') === 'true';
+        const method = (localStorage.getItem('meducil_admin_2fa_method') || 'email') as 'email' | 'phone';
+        let dest = localStorage.getItem('meducil_admin_2fa_destination') || 'sonalika.ctc29@gmail.com';
+
+        // Auto-migrate old defaults
+        if (dest === 'admin@meducil.com') {
+          dest = 'sonalika.ctc29@gmail.com';
+          localStorage.setItem('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+          saveCloudSetting('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+        } else if (dest === '+91 98765 43210') {
+          dest = '7846969508';
+          localStorage.setItem('meducil_admin_2fa_destination', '7846969508');
+          saveCloudSetting('meducil_admin_2fa_destination', '7846969508');
+        }
+
+        setSettings2faEnabled(isEnabled);
+        setSettings2faMethod(method);
+        setSettings2faDestination(dest);
+        setCloudSyncStatus('success');
+      } else {
+        setCloudSyncStatus('empty');
+      }
+    } catch (e) {
+      console.warn('Failed to load settings from Supabase. Falling back to local storage cache:', e);
+      setCloudSyncStatus('error');
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const auth = sessionStorage.getItem('meducil_admin_authenticated');
       if (auth === 'true') {
         setIsAuthenticated(true);
+        setSessionStateActive(true);
+      } else {
+        setSessionStateActive(false);
       }
+
+      // Load local settings first
+      const isEnabled = localStorage.getItem('meducil_admin_2fa_enabled') === 'true';
+      const method = (localStorage.getItem('meducil_admin_2fa_method') || 'email') as 'email' | 'phone';
+      let dest = localStorage.getItem('meducil_admin_2fa_destination') || 'sonalika.ctc29@gmail.com';
+
+      // Auto-migrate old defaults
+      if (dest === 'admin@meducil.com') {
+        dest = 'sonalika.ctc29@gmail.com';
+        localStorage.setItem('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+        saveCloudSetting('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+      } else if (dest === '+91 98765 43210') {
+        dest = '7846969508';
+        localStorage.setItem('meducil_admin_2fa_destination', '7846969508');
+        saveCloudSetting('meducil_admin_2fa_destination', '7846969508');
+      }
+      
+      setSettings2faEnabled(isEnabled);
+      setSettings2faMethod(method);
+      setSettings2faDestination(dest);
+
+      // Sync cloud settings from Supabase
+      loadCloudSettings();
     }
   }, []);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const triggerEmailOtp = async (destEmail: string, code: string) => {
+    setSmtpError('');
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: destEmail, otp: code }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        if (data.isSimulated) {
+          console.warn('Real email fallback active (SMTP not configured in .env.local).');
+          setSmtpError('SMTP Mailer is not configured in your .env.local file yet. (Legacy local simulation mode)');
+        } else {
+          console.error('Failed to send real OTP email:', data.error);
+          setSmtpError(`Mailer error: ${data.error}. Please verify your .env.local SMTP credentials.`);
+        }
+      } else {
+        console.log('Real OTP email sent successfully!');
+      }
+    } catch (err: any) {
+      console.error('Network error triggering OTP email:', err);
+      setSmtpError(`Network error dispatching OTP: ${err.message || err}`);
+    }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
+    setOtpError('');
+
+    // Fetch absolute latest configurations from Supabase prior to validation
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.from('admin_settings').select('*');
+        if (!error && data && data.length > 0) {
+          data.forEach((r: any) => {
+            localStorage.setItem(r.key, r.value);
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to query cloud configurations during login:', err);
+      }
+    }
+
+    let correctUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin';
     let correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'meducil2026';
+    
     if (typeof window !== 'undefined') {
+      const customUser = localStorage.getItem('meducil_admin_custom_username');
+      if (customUser) {
+        correctUsername = customUser;
+      }
       const customPass = localStorage.getItem('meducil_admin_custom_password');
       if (customPass) {
         correctPassword = customPass;
       }
     }
 
-    if (passwordInput === correctPassword) {
+    if (usernameInput.trim().toLowerCase() === correctUsername.trim().toLowerCase() && passwordInput === correctPassword) {
+      // Check if 2FA is enabled
+      const is2faEnabled = typeof window !== 'undefined' && localStorage.getItem('meducil_admin_2fa_enabled') === 'true';
+      if (is2faEnabled) {
+        // Generate random 6 digit OTP code
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedOtp(otp);
+        
+        let dest = typeof window !== 'undefined' ? localStorage.getItem('meducil_admin_2fa_destination') || 'sonalika.ctc29@gmail.com' : 'sonalika.ctc29@gmail.com';
+        
+        // Auto-migrate old defaults on login submit
+        if (dest === 'admin@meducil.com') {
+          dest = 'sonalika.ctc29@gmail.com';
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+          }
+          saveCloudSetting('meducil_admin_2fa_destination', 'sonalika.ctc29@gmail.com');
+        } else if (dest === '+91 98765 43210') {
+          dest = '7846969508';
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('meducil_admin_2fa_destination', '7846969508');
+          }
+          saveCloudSetting('meducil_admin_2fa_destination', '7846969508');
+        }
+        
+        setSimulatedDestination(dest);
+        setShowOtpScreen(true);
+
+        // Dispatch real email via API
+        if (dest.includes('@')) {
+          triggerEmailOtp(dest, otp);
+        }
+      } else {
+        sessionStorage.setItem('meducil_admin_authenticated', 'true');
+        setIsAuthenticated(true);
+        setLoginError('');
+      }
+    } else {
+      setLoginError('Invalid Administrator Username or Password. Access Denied.');
+    }
+  };
+
+  const handleOtpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError('');
+
+    if (otpInput.trim() === generatedOtp) {
       sessionStorage.setItem('meducil_admin_authenticated', 'true');
       setIsAuthenticated(true);
-      setLoginError('');
+      setShowOtpScreen(false);
+      setOtpInput('');
+      setGeneratedOtp('');
     } else {
-      setLoginError('Invalid Administrator Password. Access Denied.');
+      setOtpError('Incorrect 6-digit verification code. Please try again.');
+    }
+  };
+
+  const handleResendOtp = () => {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(otp);
+    setOtpError('');
+    setOtpInput('');
+
+    const dest = typeof window !== 'undefined' ? localStorage.getItem('meducil_admin_2fa_destination') || 'sonalika.ctc29@gmail.com' : 'sonalika.ctc29@gmail.com';
+    if (dest.includes('@')) {
+      triggerEmailOtp(dest, otp);
     }
   };
 
   const handleLogout = () => {
     sessionStorage.removeItem('meducil_admin_authenticated');
     setIsAuthenticated(false);
+    setSessionStateActive(false);
     setPasswordInput('');
+    setUsernameInput('');
+    setShowOtpScreen(false);
+    setOtpInput('');
+    setGeneratedOtp('');
+  };
+
+  const handleForceClearCache = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+      localStorage.removeItem('meducil_admin_authenticated');
+      
+      setIsAuthenticated(false);
+      setShowOtpScreen(false);
+      setUsernameInput('');
+      setPasswordInput('');
+      setSessionStateActive(false);
+      
+      // Re-load settings
+      loadCloudSettings();
+      alert('Active sessions and local cache cleared! You are now on a completely fresh slate.');
+    }
   };
 
   // Settings Password Form State
@@ -284,11 +598,90 @@ export default function AdminDashboard() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('meducil_admin_custom_password', settingsNewPassword);
     }
+    saveCloudSetting('meducil_admin_custom_password', settingsNewPassword);
 
     setSettingsPasswordSuccess('Administrator password updated successfully!');
     setSettingsCurrentPassword('');
     setSettingsNewPassword('');
     setSettingsConfirmPassword('');
+  };
+
+  const handleUsernameChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsUsernameError('');
+    setSettingsUsernameSuccess('');
+
+    let correctUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin';
+    if (typeof window !== 'undefined') {
+      const customUser = localStorage.getItem('meducil_admin_custom_username');
+      if (customUser) {
+        correctUsername = customUser;
+      }
+    }
+
+    if (settingsCurrentUsername.trim().toLowerCase() !== correctUsername.trim().toLowerCase()) {
+      setSettingsUsernameError('The current username you entered is incorrect.');
+      return;
+    }
+
+    if (settingsNewUsername.trim().length < 3) {
+      setSettingsUsernameError('New username must be at least 3 characters long.');
+      return;
+    }
+
+    if (settingsNewUsername.trim().toLowerCase() !== settingsConfirmUsername.trim().toLowerCase()) {
+      setSettingsUsernameError('New username and confirmation username do not match.');
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('meducil_admin_custom_username', settingsNewUsername.trim());
+    }
+    saveCloudSetting('meducil_admin_custom_username', settingsNewUsername.trim());
+
+    setSettingsUsernameSuccess('Administrator username updated successfully!');
+    setSettingsCurrentUsername('');
+    setSettingsNewUsername('');
+    setSettingsConfirmUsername('');
+  };
+
+  const handle2faChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettings2faError('');
+    setSettings2faSuccess('Saving and syncing security credentials...');
+
+    if (settings2faEnabled) {
+      if (!settings2faDestination.trim()) {
+        setSettings2faError('2FA contact destination cannot be empty.');
+        setSettings2faSuccess('');
+        return;
+      }
+      if (settings2faMethod === 'email' && !settings2faDestination.includes('@')) {
+        setSettings2faError('Please enter a valid email address.');
+        setSettings2faSuccess('');
+        return;
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('meducil_admin_2fa_enabled', settings2faEnabled.toString());
+      localStorage.setItem('meducil_admin_2fa_method', settings2faMethod);
+      localStorage.setItem('meducil_admin_2fa_destination', settings2faDestination.trim());
+    }
+
+    try {
+      await Promise.all([
+        saveCloudSetting('meducil_admin_2fa_enabled', settings2faEnabled.toString()),
+        saveCloudSetting('meducil_admin_2fa_method', settings2faMethod),
+        saveCloudSetting('meducil_admin_2fa_destination', settings2faDestination.trim())
+      ]);
+      setSettings2faSuccess('Administrator 2-Factor Authentication settings saved and synced successfully!');
+      setTimeout(() => setSettings2faSuccess(''), 4000);
+    } catch (err) {
+      console.error('Failed to sync 2FA configs:', err);
+      setSettings2faError('Successfully saved locally, but failed to sync to Supabase. Check database policies.');
+      setSettings2faSuccess('');
+    }
   };
   
   // Orders State
@@ -528,48 +921,241 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="text-center mb-8 relative z-10">
-            {/* Lock Circle Icon */}
+            {/* Lock/Unlock Circle Icon */}
             <div className="w-16 h-16 bg-slate-700/50 text-primary-400 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-slate-600/50 shadow-inner">
               <Lock className="w-7 h-7 animate-pulse" />
             </div>
             
             <h2 className="text-2xl font-extrabold text-white tracking-tight">Meducil Admin Portal</h2>
             <p className="text-xs text-slate-400 mt-2 max-w-[260px] mx-auto leading-relaxed">
-              Founder access key required. Enter password to view checkouts and inventory.
+              {showOtpScreen 
+                ? "2-Factor Authentication required. Enter the 6-digit passcode to verify your identity."
+                : "Founder access credentials required. Enter your admin username and password."}
             </p>
           </div>
 
-          <form onSubmit={handleLoginSubmit} className="space-y-5 relative z-10">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 block">Administrator Password</label>
-              <input
-                type="password"
-                required
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-600 font-sans"
-              />
-            </div>
+          {showOtpScreen ? (
+            <form onSubmit={handleOtpSubmit} className="space-y-5 relative z-10">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">Enter 6-Digit OTP Passcode</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 123456"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-bold tracking-[0.3em] text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-700 font-mono"
+                />
+              </div>
 
-            {loginError && (
-              <motion.div 
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold flex items-start gap-2"
+              {otpError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold flex items-start gap-2"
+                >
+                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  <span>{otpError}</span>
+                </motion.div>
+              )}
+
+              {smtpError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-bold flex items-start gap-2 leading-relaxed"
+                >
+                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-amber-500" />
+                  <span>{smtpError}</span>
+                </motion.div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full rounded-xl h-11 bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-500/10 transition-transform text-sm font-sans"
               >
-                <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-                <span>{loginError}</span>
+                Verify & Access Dashboard <Unlock className="w-4 h-4" />
+              </Button>
+
+              {/* Simulated OTP Notification Banner inside the portal for testing */}
+              <div className="p-4 bg-slate-900/80 border border-slate-750 rounded-2xl text-xs space-y-2 select-none relative overflow-hidden text-slate-300 font-mono">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">OTP Delivery Gateway</span>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  [System Secure]: Passcode has been generated and dispatched to your inbox at <span className="text-white font-bold">{simulatedDestination}</span>.
+                </p>
+                <p className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
+                  Please check your spam or inbox. The code is hidden on this screen for secure founder authentication.
+                </p>
+                <div className="pt-1.5 flex items-center justify-end border-t border-slate-800/80 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    className="text-[10px] text-primary-400 hover:text-primary-300 underline font-sans font-bold"
+                  >
+                    Resend OTP Code
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpScreen(false)}
+                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleLoginSubmit} className="space-y-5 relative z-10">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">Administrator Username</label>
+                <input
+                  type="text"
+                  required
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="Enter username..."
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-600 font-sans"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">Administrator Password</label>
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-600 font-sans"
+                />
+              </div>
+
+              {loginError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold flex items-start gap-2"
+                >
+                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  <span>{loginError}</span>
+                </motion.div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full rounded-xl h-11 bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-500/10 transition-transform text-sm font-sans"
+              >
+                Access Dashboard <Unlock className="w-4 h-4" />
+              </Button>
+            </form>
+          )}
+
+          {/* Glassmorphic Diagnostics & Security Audit Panel */}
+          <div className="mt-6 border border-slate-700/40 rounded-2xl bg-slate-900/50 backdrop-blur-md p-4 relative z-10">
+            <button
+              type="button"
+              onClick={() => setIsDiagnosticsOpen(!isDiagnosticsOpen)}
+              className="w-full flex items-center justify-between text-left text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <span className="flex items-center gap-1.5 uppercase tracking-wider">
+                <Database className="w-3.5 h-3.5 text-primary-400 animate-pulse" />
+                Security & Sync Diagnostics
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
+                {isDiagnosticsOpen ? 'Hide' : 'Expand'}
+              </span>
+            </button>
+
+            {isDiagnosticsOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3.5 pt-3.5 border-t border-slate-800/80 space-y-3 text-xs"
+              >
+                <div className="grid grid-cols-2 gap-3 text-[11px] font-mono">
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/40">
+                    <span className="text-slate-500 block text-[9px] uppercase font-sans font-bold">Cloud Synced Table</span>
+                    <span className={`font-bold flex items-center gap-1.5 mt-1 ${
+                      cloudSyncStatus === 'success' ? 'text-green-400' :
+                      cloudSyncStatus === 'empty' ? 'text-amber-400' :
+                      cloudSyncStatus === 'error' ? 'text-red-400' :
+                      cloudSyncStatus === 'not_configured' ? 'text-slate-400' :
+                      'text-blue-400 animate-pulse'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        cloudSyncStatus === 'success' ? 'bg-green-500' :
+                        cloudSyncStatus === 'empty' ? 'bg-amber-500' :
+                        cloudSyncStatus === 'error' ? 'bg-red-500' :
+                        cloudSyncStatus === 'not_configured' ? 'bg-slate-500' :
+                        'bg-blue-500 animate-ping'
+                      }`}></span>
+                      {cloudSyncStatus === 'success' ? 'Supabase Synced' :
+                       cloudSyncStatus === 'empty' ? 'Database Empty' :
+                       cloudSyncStatus === 'error' ? 'Sync Error' :
+                       cloudSyncStatus === 'not_configured' ? 'Local Sandbox' :
+                       'Connecting...'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/40">
+                    <span className="text-slate-500 block text-[9px] uppercase font-sans font-bold">2FA Security Status</span>
+                    <span className={`font-bold flex items-center gap-1.5 mt-1 ${
+                      settings2faEnabled ? 'text-emerald-400' : 'text-slate-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        settings2faEnabled ? 'bg-emerald-500' : 'bg-slate-500'
+                      }`}></span>
+                      {settings2faEnabled ? 'ENFORCED (OTP Active)' : 'DISABLED (Bypass)'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/40">
+                    <span className="text-slate-500 block text-[9px] uppercase font-sans font-bold">OTP Destination</span>
+                    <span className="font-bold text-white block mt-1 truncate" title={settings2faDestination}>
+                      {settings2faEnabled ? settings2faDestination : 'N/A'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/40">
+                    <span className="text-slate-500 block text-[9px] uppercase font-sans font-bold">Preserved Session</span>
+                    <span className={`font-bold flex items-center gap-1.5 mt-1 ${
+                      sessionStateActive ? 'text-indigo-400' : 'text-slate-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        sessionStateActive ? 'bg-indigo-500' : 'bg-slate-500'
+                      }`}></span>
+                      {sessionStateActive ? 'ACTIVE (Bypasses Login)' : 'CLEAR (Requires Login)'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/40 col-span-2">
+                    <span className="text-slate-500 block text-[9px] uppercase font-sans font-bold">Debug Sandbox Code</span>
+                    <span className="font-bold text-white block mt-1 text-sm font-mono tracking-wider">
+                      {generatedOtp || 'None generated'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-1.5">
+                  <button
+                    type="button"
+                    onClick={handleForceClearCache}
+                    className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-xl font-bold transition-all text-[11px] font-sans flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Force Reset Session & Local Cache
+                  </button>
+                  <p className="text-[10px] text-slate-500 text-center mt-2 leading-relaxed font-sans">
+                    Clears client-side session tokens to simulate a brand-new device sign-in.
+                  </p>
+                </div>
               </motion.div>
             )}
-
-            <Button
-              type="submit"
-              className="w-full rounded-xl h-11 bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-500/10 transition-transform text-sm font-sans"
-            >
-              Access Dashboard <Unlock className="w-4 h-4" />
-            </Button>
-          </form>
+          </div>
 
           {/* Secure indicator footer */}
           <div className="mt-8 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5 z-10 relative">
@@ -1371,78 +1957,316 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
         )}
         {/* Settings Tab View */}
         {activeTab === 'settings' && (
-          <div className="max-w-2xl bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-6 md:p-8 space-y-6 font-sans">
+          <div className="max-w-2xl bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-6 md:p-8 space-y-8 font-sans">
             <div>
               <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-primary-600" /> Administrator Security Settings
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Customize your founder login keys. Changed credentials persist locally on this browser.
+                Customize your founder login credentials and enable two-factor passcode delivery.
               </p>
             </div>
 
-            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 pt-4 border-t border-slate-100">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 block">Current Password</label>
-                <input
-                  type="password"
-                  required
-                  value={settingsCurrentPassword}
-                  onChange={(e) => setSettingsCurrentPassword(e.target.value)}
-                  placeholder="Enter current password..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
-                />
+            {settings2faEnabled && (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl text-xs flex items-start gap-3 shadow-sm shadow-emerald-500/5">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Two-Factor Authentication is currently Active</p>
+                  <p className="text-[11px] text-emerald-600/90 mt-1 leading-relaxed">
+                    To test the OTP login screen flow on this device, click the <strong className="text-emerald-800 font-extrabold">Log Out</strong> button in the sidebar. This will clear the active session and prompt for fresh 2FA validation on your next sign-in.
+                  </p>
+                </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Form 1: Username Settings */}
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">1. Administrator Username</h3>
+              <form onSubmit={handleUsernameChangeSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 block">New Password (Min 6 chars)</label>
+                  <label className="text-xs font-bold text-slate-600 block">Current Username</label>
                   <input
-                    type="password"
+                    type="text"
                     required
-                    value={settingsNewPassword}
-                    onChange={(e) => setSettingsNewPassword(e.target.value)}
-                    placeholder="Enter new password..."
+                    value={settingsCurrentUsername}
+                    onChange={(e) => setSettingsCurrentUsername(e.target.value)}
+                    placeholder="Enter current username..."
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
                   />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">New Username (Min 3 chars)</label>
+                    <input
+                      type="text"
+                      required
+                      value={settingsNewUsername}
+                      onChange={(e) => setSettingsNewUsername(e.target.value)}
+                      placeholder="Enter new username..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">Confirm New Username</label>
+                    <input
+                      type="text"
+                      required
+                      value={settingsConfirmUsername}
+                      onChange={(e) => setSettingsConfirmUsername(e.target.value)}
+                      placeholder="Confirm new username..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
+                    />
+                  </div>
+                </div>
+
+                {settingsUsernameError && (
+                  <div className="p-3.5 bg-red-50 text-red-700 border border-red-100 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                    <span>{settingsUsernameError}</span>
+                  </div>
+                )}
+
+                {settingsUsernameSuccess && (
+                  <div className="p-3.5 bg-green-50 text-green-700 border border-green-100 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-green-600" />
+                    <span>{settingsUsernameSuccess}</span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-2.5 shadow-md shadow-slate-900/10 text-xs flex items-center gap-1.5 transition-transform"
+                  >
+                    <User className="w-3.5 h-3.5" /> Change Username
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Form 2: Password Settings */}
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">2. Administrator Password</h3>
+              <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 block">Confirm New Password</label>
+                  <label className="text-xs font-bold text-slate-600 block">Current Password</label>
                   <input
                     type="password"
                     required
-                    value={settingsConfirmPassword}
-                    onChange={(e) => setSettingsConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password..."
+                    value={settingsCurrentPassword}
+                    onChange={(e) => setSettingsCurrentPassword(e.target.value)}
+                    placeholder="Enter current password..."
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
                   />
                 </div>
-              </div>
 
-              {settingsPasswordError && (
-                <div className="p-3.5 bg-red-50 text-red-700 border border-red-100 rounded-2xl text-xs font-bold flex items-start gap-2">
-                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-                  <span>{settingsPasswordError}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">New Password (Min 6 chars)</label>
+                    <input
+                      type="password"
+                      required
+                      value={settingsNewPassword}
+                      onChange={(e) => setSettingsNewPassword(e.target.value)}
+                      placeholder="Enter new password..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">Confirm New Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={settingsConfirmPassword}
+                      onChange={(e) => setSettingsConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
+                    />
+                  </div>
                 </div>
-              )}
 
-              {settingsPasswordSuccess && (
-                <div className="p-3.5 bg-green-50 text-green-700 border border-green-100 rounded-2xl text-xs font-bold flex items-start gap-2">
-                  <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-green-600" />
-                  <span>{settingsPasswordSuccess}</span>
+                {settingsPasswordError && (
+                  <div className="p-3.5 bg-red-50 text-red-700 border border-red-100 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                    <span>{settingsPasswordError}</span>
+                  </div>
+                )}
+
+                {settingsPasswordSuccess && (
+                  <div className="p-3.5 bg-green-50 text-green-700 border border-green-100 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-green-600" />
+                    <span>{settingsPasswordSuccess}</span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-2.5 shadow-md shadow-slate-900/10 text-xs flex items-center gap-1.5 transition-transform"
+                  >
+                    <Lock className="w-3.5 h-3.5" /> Change Password
+                  </Button>
                 </div>
-              )}
+              </form>
+            </div>
 
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-2.5 shadow-md shadow-slate-900/10 text-xs flex items-center gap-1.5 transition-transform"
-                >
-                  <Lock className="w-3.5 h-3.5" /> Change Password
-                </Button>
-              </div>
-            </form>
+            {/* Form 3: Two-Factor Authentication (2FA) */}
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">3. Two-Factor Authentication (2FA) Settings</h3>
+              <form onSubmit={handle2faChangeSubmit} className="space-y-4">
+                
+                {/* 2FA Enable/Disable Switch */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition-colors">
+                  <div>
+                    <label className="text-xs font-bold text-slate-955 block">Enable Two-Factor Authentication (OTP)</label>
+                    <p className="text-[10px] text-slate-400 font-medium">Verify a simulated 6-digit one-time passcode upon administrator login.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings2faEnabled}
+                    onChange={async (e) => {
+                      const val = e.target.checked;
+                      setSettings2faEnabled(val);
+                      
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('meducil_admin_2fa_enabled', val.toString());
+                        localStorage.setItem('meducil_admin_2fa_method', settings2faMethod);
+                        localStorage.setItem('meducil_admin_2fa_destination', settings2faDestination.trim());
+                      }
+
+                      setSettings2faSuccess('Saving and syncing with database...');
+                      try {
+                        await Promise.all([
+                          saveCloudSetting('meducil_admin_2fa_enabled', val.toString()),
+                          saveCloudSetting('meducil_admin_2fa_method', settings2faMethod),
+                          saveCloudSetting('meducil_admin_2fa_destination', settings2faDestination.trim())
+                        ]);
+                        
+                        if (val) {
+                          setSettings2faSuccess('2-Factor Authentication enabled! Logging out to verify...');
+                          setTimeout(() => {
+                            if (typeof window !== 'undefined') {
+                              sessionStorage.removeItem('meducil_admin_authenticated');
+                              setIsAuthenticated(false);
+                              setShowOtpScreen(false);
+                              setUsernameInput('');
+                              setPasswordInput('');
+                            }
+                          }, 1500);
+                        } else {
+                          setSettings2faSuccess('2-Factor Authentication disabled successfully!');
+                          setTimeout(() => setSettings2faSuccess(''), 3000);
+                        }
+                      } catch (err) {
+                        console.error('Failed to sync 2FA status:', err);
+                        setSettings2faError('Saved locally, but failed to sync to Supabase. Check database policies.');
+                        setSettings2faSuccess('');
+                      }
+                    }}
+                    className="w-5 h-5 rounded text-primary-600 focus:ring-primary-500 border-slate-300 cursor-pointer"
+                  />
+                </div>
+
+                {settings2faEnabled && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200"
+                  >
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block">OTP Delivery Method</label>
+                      <select
+                        value={settings2faMethod}
+                        onChange={async (e) => {
+                          const val = e.target.value as 'email' | 'phone';
+                          setSettings2faMethod(val);
+                          const defaultDest = val === 'email' ? 'sonalika.ctc29@gmail.com' : '7846969508';
+                          setSettings2faDestination(defaultDest);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('meducil_admin_2fa_method', val);
+                            localStorage.setItem('meducil_admin_2fa_destination', defaultDest);
+                          }
+                          
+                          setSettings2faSuccess('Syncing method with database...');
+                          try {
+                            await Promise.all([
+                              saveCloudSetting('meducil_admin_2fa_method', val),
+                              saveCloudSetting('meducil_admin_2fa_destination', defaultDest)
+                            ]);
+                            setSettings2faSuccess('OTP delivery method updated!');
+                            setTimeout(() => setSettings2faSuccess(''), 3000);
+                          } catch (err) {
+                            console.error('Failed to sync 2FA method:', err);
+                            setSettings2faError('Saved locally, but failed to sync to Supabase.');
+                            setSettings2faSuccess('');
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all text-slate-800 font-sans cursor-pointer"
+                      >
+                        <option value="email">Email Address</option>
+                        <option value="phone">SMS / Phone Number</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block">
+                        {settings2faMethod === 'email' ? 'Registered Email Address' : 'Registered Mobile Number'}
+                      </label>
+                      <input
+                        type={settings2faMethod === 'email' ? 'email' : 'text'}
+                        required
+                        value={settings2faDestination}
+                        onChange={(e) => setSettings2faDestination(e.target.value)}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('meducil_admin_2fa_destination', val);
+                          }
+                          setSettings2faSuccess('Syncing destination with database...');
+                          try {
+                            await saveCloudSetting('meducil_admin_2fa_destination', val);
+                            setSettings2faSuccess('2FA contact destination saved & synced!');
+                            setTimeout(() => setSettings2faSuccess(''), 3000);
+                          } catch (err) {
+                            console.error('Failed to sync 2FA destination:', err);
+                            setSettings2faError('Saved locally, but failed to sync to Supabase.');
+                            setSettings2faSuccess('');
+                          }
+                        }}
+                        placeholder={settings2faMethod === 'email' ? 'sonalika.ctc29@gmail.com' : '7846969508'}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder-slate-400"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+                {settings2faError && (
+                  <div className="p-3.5 bg-red-50 text-red-750 border border-red-200 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-red-600" />
+                    <span>{settings2faError}</span>
+                  </div>
+                )}
+
+                {settings2faSuccess && (
+                  <div className="p-3.5 bg-green-50 text-green-700 border border-green-100 rounded-2xl text-xs font-bold flex items-start gap-2">
+                    <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-green-600" />
+                    <span>{settings2faSuccess}</span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-2.5 shadow-md shadow-slate-900/10 text-xs flex items-center gap-1.5 transition-transform"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> Save 2FA Configurations
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </main>

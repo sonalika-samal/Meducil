@@ -63,7 +63,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!user) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('meducil_pending_cart_item', JSON.stringify({ medicine, quantity }));
-        window.dispatchEvent(new CustomEvent('meducil_open_auth', { detail: { mode: 'signup' } }));
+        const hasHistory = localStorage.getItem('meducil_has_auth_history') === 'true';
+        window.dispatchEvent(new CustomEvent('meducil_open_auth', { detail: { mode: hasHistory ? 'login' : 'signup' } }));
       }
       return;
     }
