@@ -26,7 +26,7 @@ export function FAQSection() {
   ];
 
   return (
-    <section className="py-24 bg-white relative">
+    <section id="faq" className="py-24 bg-white relative">
       <div className="container mx-auto px-4 md:px-6 max-w-4xl">
         <div className="text-center mb-16">
           <h2 className="text-sm font-bold text-primary-600 tracking-wider uppercase mb-3">FAQ</h2>

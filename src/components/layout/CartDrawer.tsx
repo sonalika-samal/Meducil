@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/data/userStore';
+import { PaymentSimulator } from '../ui/PaymentSimulator';
 
 export function CartDrawer() {
   const { 
@@ -37,6 +38,12 @@ export function CartDrawer() {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Simulator State
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [simulatorDetails, setSimulatorDetails] = useState({ amount: 0, description: '' });
+  const [activeOrderPayload, setActiveOrderPayload] = useState<any>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string>('');
 
   // Auto-fill logged-in user profiles
   useEffect(() => {
@@ -69,6 +76,59 @@ export function CartDrawer() {
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
+  };
+
+  const handlePaymentVerification = async (orderId: string, paymentId: string, signature: string, payload: any) => {
+    try {
+      const verifyRes = await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature
+        })
+      });
+      const verifyData = await verifyRes.json();
+
+      if (verifyData.success) {
+        const finalOrder = {
+          ...payload,
+          paymentMethod: `Razorpay Online (${paymentId || 'Captured'})`
+        };
+        const created = await createOrder(finalOrder);
+
+        const recentOrder = {
+          id: created.id,
+          name: created.customerName,
+          phone: created.phone,
+          address: created.address,
+          total: created.totalAmount,
+          items: created.items,
+          paymentMethod: created.paymentMethod,
+          deliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toDateString()
+        };
+
+        localStorage.setItem('recentBooking', JSON.stringify(recentOrder));
+        clearCart();
+        setCartOpen(false);
+        setCheckoutStep('cart');
+        setIsProcessingPayment(false);
+        router.push(`/success?id=${created.id}`);
+      } else {
+        alert('Payment verification failed: ' + verifyData.error);
+        setIsProcessingPayment(false);
+      }
+    } catch (err) {
+      console.error('Signature verification crashed:', err);
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleSimulatorSuccess = async (paymentId: string, signature: string) => {
+    setIsSimulatorOpen(false);
+    setIsProcessingPayment(true);
+    await handlePaymentVerification(activeOrderId, paymentId, signature, activeOrderPayload);
   };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -111,13 +171,6 @@ export function CartDrawer() {
     if (paymentMethod === 'online') {
       setIsProcessingPayment(true);
       try {
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-          alert('Failed to load Razorpay checkout client. Check internet connection.');
-          setIsProcessingPayment(false);
-          return;
-        }
-
         // Trigger backend create-order API
         const createRes = await fetch('/api/create-order', {
           method: 'POST',
@@ -132,6 +185,25 @@ export function CartDrawer() {
           return;
         }
 
+        // Check if Sandbox fallback is active
+        if (orderData.mode === 'sandbox' || orderData.key === 'rzp_test_placeholder' || orderData.id.startsWith('rzp_mock_')) {
+          setActiveOrderPayload(orderPayload);
+          setActiveOrderId(orderData.id);
+          setSimulatorDetails({
+            amount: grandTotal,
+            description: `Medicines Purchase (${cart.length} items)`
+          });
+          setIsSimulatorOpen(true);
+          return;
+        }
+
+        const loaded = await loadRazorpayScript();
+        if (!loaded) {
+          alert('Failed to load Razorpay checkout client. Check internet connection.');
+          setIsProcessingPayment(false);
+          return;
+        }
+
         const options = {
           key: orderData.key,
           amount: orderData.amount,
@@ -140,52 +212,12 @@ export function CartDrawer() {
           description: 'Secure Homoeopathic Checkout Portal',
           order_id: orderData.id,
           handler: async function (response: any) {
-            try {
-              // Trigger signature verification API
-              const verifyRes = await fetch('/api/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature || 'mock_sig_placeholder'
-                })
-              });
-              const verifyData = await verifyRes.json();
-
-              if (verifyData.success) {
-                // Finalize insertion in DB with transaction ID
-                const finalOrder = {
-                  ...orderPayload,
-                  paymentMethod: `Razorpay Online (${response.razorpay_payment_id || 'Captured'})`
-                };
-                const created = await createOrder(finalOrder);
-
-                const recentOrder = {
-                  id: created.id,
-                  name: created.customerName,
-                  phone: created.phone,
-                  address: created.address,
-                  total: created.totalAmount,
-                  items: created.items,
-                  paymentMethod: created.paymentMethod,
-                  deliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toDateString()
-                };
-
-                localStorage.setItem('recentBooking', JSON.stringify(recentOrder));
-                clearCart();
-                setCartOpen(false);
-                setCheckoutStep('cart');
-                setIsProcessingPayment(false);
-                router.push(`/success?id=${created.id}`);
-              } else {
-                alert('Payment verification failed: ' + verifyData.error);
-                setIsProcessingPayment(false);
-              }
-            } catch (err) {
-              console.error('Signature check routine crashed:', err);
-              setIsProcessingPayment(false);
-            }
+            await handlePaymentVerification(
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature || 'mock_sig_placeholder',
+              orderPayload
+            );
           },
           prefill: {
             name: shippingInfo.name,
@@ -234,8 +266,9 @@ export function CartDrawer() {
   };
 
   return (
-    <AnimatePresence>
-      {cartOpen && (
+    <>
+      <AnimatePresence>
+        {cartOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           {/* Backdrop */}
           <motion.div
@@ -517,5 +550,23 @@ export function CartDrawer() {
         </div>
       )}
     </AnimatePresence>
+    <PaymentSimulator
+      isOpen={isSimulatorOpen}
+      onClose={() => {
+        setIsSimulatorOpen(false);
+        setIsProcessingPayment(false);
+      }}
+      amount={simulatorDetails.amount}
+      description={simulatorDetails.description}
+      customerName={shippingInfo.name}
+      customerPhone={shippingInfo.phone}
+      onSuccess={handleSimulatorSuccess}
+      onFailure={(err) => {
+        alert(err);
+        setIsSimulatorOpen(false);
+        setIsProcessingPayment(false);
+      }}
+    />
+    </>
   );
 }

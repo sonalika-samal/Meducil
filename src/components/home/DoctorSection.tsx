@@ -170,14 +170,14 @@ export function DoctorSection() {
 
             {/* Booking CTA */}
             <div className="pt-4 flex flex-wrap gap-4">
-              <Link 
-                href="/book" 
+              <a 
+                href="tel:+919430062740" 
                 className="inline-flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 transform hover:-translate-y-0.5 duration-150 group"
               >
-                <Calendar className="w-5 h-5 mr-2" />
-                Book Consultation with Dr. Ganesh
+                <Phone className="w-5 h-5 mr-2" />
+                Call Clinic for Appointment
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </a>
             </div>
 
           </motion.div>

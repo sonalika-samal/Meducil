@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Meducil | Trusted Care For Better Health",
-  description: "Expert Homoeopathic Consultation. Natural Healing, Trusted Care, No Side Effects.",
+  description: "Trusted Homoeopathic Care. Natural Healing, Premium Remedies, No Side Effects.",
 };
 
 export default function RootLayout({

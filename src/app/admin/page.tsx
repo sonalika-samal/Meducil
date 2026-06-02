@@ -134,6 +134,8 @@ CREATE TABLE IF NOT EXISTS orders (
   status VARCHAR(50) DEFAULT 'Pending', -- Pending, Shipped, Delivered, Cancelled
   payment_method VARCHAR(100) DEFAULT 'Cash on Delivery',
   tracking_number VARCHAR(100),
+  courier_name VARCHAR(255),
+  tracking_url TEXT,
   items JSONB NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -253,6 +255,13 @@ export default function AdminDashboard() {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  
+  // Forgot Password & Social States
+  const [showAdminForgotPassword, setShowAdminForgotPassword] = useState(false);
+  const [isAdminGoogleSelectorOpen, setIsAdminGoogleSelectorOpen] = useState(false);
+  const [adminRecoveryEmail, setAdminRecoveryEmail] = useState('');
+  const [adminRecoverySuccess, setAdminRecoverySuccess] = useState('');
+  const [adminRecoveryError, setAdminRecoveryError] = useState('');
 
   // 2FA & OTP verification states
   const [showOtpScreen, setShowOtpScreen] = useState(false);
@@ -505,6 +514,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAdminForgotPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminRecoveryError('');
+    setAdminRecoverySuccess('');
+
+    const email = adminRecoveryEmail.trim().toLowerCase();
+    if (!email) {
+      setAdminRecoveryError('Please enter your email address.');
+      return;
+    }
+
+    if (email.trim().toLowerCase() === 'sonalika.ctc29@gmail.com') {
+      setAdminRecoverySuccess('A secure recovery token has been sent to your administrator email address.');
+      setAdminRecoveryEmail('');
+    } else {
+      setAdminRecoveryError('Access Denied: This email address is not registered as an administrator profile.');
+    }
+  };
+
+  const handleAdminGoogleSelectAccount = (name: string, email: string) => {
+    setIsAdminGoogleSelectorOpen(false);
+    setLoginError('');
+    
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail === 'sonalika.ctc29@gmail.com') {
+      sessionStorage.setItem('meducil_admin_authenticated', 'true');
+      setIsAuthenticated(true);
+      setShowAdminForgotPassword(false);
+    } else {
+      setLoginError(`Access Denied: ${email} is not registered as an administrator profile.`);
+    }
+  };
+
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
@@ -697,6 +739,9 @@ export default function AdminDashboard() {
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [trackingNumberInput, setTrackingNumberInput] = useState('');
+  const [courierNameInput, setCourierNameInput] = useState('');
+  const [trackingUrlInput, setTrackingUrlInput] = useState('');
+  const [trackingError, setTrackingError] = useState('');
   const [addressCopied, setAddressCopied] = useState(false);
 
   const handleCopyAddressSlip = (order: Order) => {
@@ -710,10 +755,22 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
     setTimeout(() => setAddressCopied(false), 2000);
   };
 
-  const handleStatusChange = async (id: string, status: Order['status'], currentTracking?: string | null) => {
-    await updateOrderStatus(id, status, currentTracking);
+  const handleStatusChange = async (
+    id: string, 
+    status: Order['status'], 
+    currentTracking?: string | null,
+    courierName?: string | null,
+    trackingUrl?: string | null
+  ) => {
+    await updateOrderStatus(id, status, currentTracking, courierName, trackingUrl);
     if (selectedOrder && selectedOrder.id === id) {
-      setSelectedOrder(prev => prev ? { ...prev, status } : null);
+      setSelectedOrder(prev => prev ? { 
+        ...prev, 
+        status,
+        ...(currentTracking !== undefined ? { trackingNumber: currentTracking } : {}),
+        ...(courierName !== undefined ? { courierName } : {}),
+        ...(trackingUrl !== undefined ? { trackingUrl } : {})
+      } : null);
     }
   };
   
@@ -1008,6 +1065,51 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                 </button>
               </div>
             </form>
+          ) : showAdminForgotPassword ? (
+            <form onSubmit={handleAdminForgotPasswordSubmit} className="space-y-5 relative z-10">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">Administrator Email</label>
+                <input
+                  type="email"
+                  required
+                  value={adminRecoveryEmail}
+                  onChange={(e) => setAdminRecoveryEmail(e.target.value)}
+                  placeholder="admin@domain.com"
+                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-600 font-sans"
+                />
+              </div>
+
+              {adminRecoveryError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold flex items-start gap-2">
+                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  <span>{adminRecoveryError}</span>
+                </div>
+              )}
+
+              {adminRecoverySuccess && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold flex items-start gap-2">
+                  <CheckCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  <span>{adminRecoverySuccess}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full rounded-xl h-11 bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg transition-transform text-sm font-sans"
+              >
+                Send Recovery Token
+              </Button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAdminForgotPassword(false); setAdminRecoveryError(''); setAdminRecoverySuccess(''); }}
+                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
           ) : (
             <form onSubmit={handleLoginSubmit} className="space-y-5 relative z-10">
               <div className="space-y-2">
@@ -1023,7 +1125,16 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 block">Administrator Password</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-300 block">Administrator Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAdminForgotPassword(true); setLoginError(''); }}
+                    className="text-xs text-primary-400 hover:text-primary-300 underline font-sans font-bold"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <input
                   type="password"
                   required
@@ -1051,6 +1162,29 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
               >
                 Access Dashboard <Unlock className="w-4 h-4" />
               </Button>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-700/60" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
+                  <span className="bg-[#0b0f17] px-2.5 text-slate-500">Or sign in as admin with</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAdminGoogleSelectorOpen(true)}
+                className="w-full rounded-xl h-11 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white font-bold flex items-center justify-center gap-2.5 shadow-md transition-all text-xs font-sans group"
+              >
+                <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+                </svg>
+                Continue with Google
+              </button>
             </form>
           )}
 
@@ -1163,6 +1297,95 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
             <span>Fulfillment Desk Potency Protected Security Protocol</span>
           </div>
         </motion.div>
+
+        {/* Admin Google Accounts Selector Simulation Modal */}
+        <AnimatePresence>
+          {isAdminGoogleSelectorOpen && (
+            <div className="fixed inset-0 z-[10000] overflow-hidden flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.6 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAdminGoogleSelectorOpen(false)}
+                className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="bg-slate-900 rounded-3xl p-6 max-w-sm w-full border border-slate-750 shadow-2xl relative z-[10001] font-sans text-slate-200"
+              >
+                <div className="text-center mb-6">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+                  </svg>
+                  <h3 className="text-base font-bold text-white font-sans">Google Administrator SSO</h3>
+                  <p className="text-xs text-slate-400 mt-1">Select an account to access the Fulfillment Desk</p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleAdminGoogleSelectAccount("Sonalika Samal", "sonalika.ctc29@gmail.com")}
+                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center font-sans">SS</div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-white font-sans">Sonalika Samal</h4>
+                      <p className="text-[10px] text-slate-400 font-mono truncate">sonalika.ctc29@gmail.com</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleAdminGoogleSelectAccount("Abhishek", "abhishekabhinav.av@gmail.com")}
+                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">A</div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-300 font-sans">Abhishek (Denied Test)</h4>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">abhishekabhinav.av@gmail.com</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleAdminGoogleSelectAccount("Dr. Ganesh Kumar Das", "dr.ganesh.kumar34@gmail.com")}
+                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">GD</div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-300 font-sans">Dr. Ganesh Kumar Das (Denied Test)</h4>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">dr.ganesh.kumar34@gmail.com</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAdminGoogleSelectAccount("Guest User", "guest.operator@domain.com")}
+                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">GU</div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-300 font-sans">Non-Admin Guest (Denied Test)</h4>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">guest.operator@domain.com</p>
+                    </div>
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => setIsAdminGoogleSelectorOpen(false)}
+                  className="mt-6 w-full text-center py-2 text-xs text-slate-400 hover:text-slate-300 font-semibold font-sans"
+                >
+                  Cancel
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -1467,6 +1690,9 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                                     onClick={() => {
                                       setSelectedOrder(order);
                                       setTrackingNumberInput(order.trackingNumber || '');
+                                      setCourierNameInput(order.courierName || '');
+                                      setTrackingUrlInput(order.trackingUrl || '');
+                                      setTrackingError('');
                                     }}
                                     className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-slate-900/10 flex items-center gap-1.5"
                                   >
@@ -2797,7 +3023,13 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                         <button
                           key={st.status}
                           type="button"
-                          onClick={() => handleStatusChange(selectedOrder.id, st.status, selectedOrder.trackingNumber)}
+                          onClick={() => handleStatusChange(
+                            selectedOrder.id, 
+                            st.status, 
+                            trackingNumberInput || null,
+                            courierNameInput || null,
+                            trackingUrlInput || null
+                          )}
                           className={`p-3 rounded-xl border text-left transition-all font-sans ${
                             isActive 
                               ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
@@ -2814,25 +3046,67 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                   <form 
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      await handleStatusChange(selectedOrder.id, selectedOrder.status, trackingNumberInput || null);
+                      setTrackingError('');
+                      
+                      const cleanUrl = trackingUrlInput.trim();
+                      if (cleanUrl && !cleanUrl.startsWith('https://')) {
+                        setTrackingError('Tracking URL must start with https://');
+                        return;
+                      }
+
+                      await handleStatusChange(
+                        selectedOrder.id, 
+                        selectedOrder.status, 
+                        trackingNumberInput.trim() || null,
+                        courierNameInput.trim() || null,
+                        cleanUrl || null
+                      );
                       alert('Tracking details saved!');
                     }}
-                    className="space-y-2 pt-2"
+                    className="space-y-3 pt-2"
                   >
-                    <label className="text-xs font-bold text-slate-600 block font-sans">Courier Tracking Number</label>
-                    <div className="flex gap-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block font-sans">Courier Name</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Blue Dart, Delhivery"
+                        value={courierNameInput}
+                        onChange={(e) => setCourierNameInput(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-sans"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block font-sans">Courier Tracking Number</label>
                       <input 
                         type="text"
                         placeholder="e.g. BD-82910-DEL"
                         value={trackingNumberInput}
                         onChange={(e) => setTrackingNumberInput(e.target.value)}
-                        className="flex-grow bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-sans"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-sans"
                       />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block font-sans">Tracking URL</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. https://bluedart.com/track?id=..."
+                        value={trackingUrlInput}
+                        onChange={(e) => setTrackingUrlInput(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 font-sans"
+                      />
+                      {trackingError && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 font-sans">{trackingError}</p>
+                      )}
+                    </div>
+
+                    <div className="pt-1">
                       <Button
                         type="submit"
-                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl px-4 text-xs shrink-0 font-sans"
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl py-2.5 text-xs font-sans shadow-sm"
                       >
-                        Save Tracking
+                        Save Tracking Details
                       </Button>
                     </div>
                   </form>

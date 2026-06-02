@@ -5,20 +5,20 @@ export function Testimonials() {
   const testimonials = [
     {
       name: 'Priya Sharma',
-      role: 'Patient',
-      text: 'I had been struggling with chronic migraines for years. After just a few months of consultation with Meducil, my frequency of attacks has reduced significantly. Highly recommended!',
+      role: 'Verified Buyer',
+      text: 'I had been struggling with chronic migraines for years. After just a few months of using Meducil\'s recommended remedies, my frequency of attacks has reduced significantly. Highly recommended!',
       rating: 5,
     },
     {
       name: 'Rahul Desai',
-      role: 'Patient',
-      text: 'The convenience of online consultation and direct medicine delivery is unmatched. The doctor was very patient and listened to all my problems before prescribing.',
+      role: 'Verified Buyer',
+      text: 'The convenience of finding authentic homoeopathic medicines and direct delivery is unmatched. The customer support was extremely helpful in guiding me on packaging queries.',
       rating: 5,
     },
     {
       name: 'Anita Verma',
-      role: 'Patient',
-      text: 'I love that the treatments are completely natural and have no side effects. It’s a very gentle approach to healing that works wonders for my immunity.',
+      role: 'Happy Customer',
+      text: 'I love that the remedies are completely natural and have no side effects. It’s a very gentle approach to healing that works wonders for my immunity.',
       rating: 4,
     }
   ];

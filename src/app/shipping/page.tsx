@@ -9,11 +9,11 @@ export const metadata = {
 
 export default function ShippingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 py-16">
+    <div className="min-h-screen bg-slate-50 pt-8 pb-16">
       <div className="container mx-auto px-4 md:px-6 max-w-5xl">
         
         {/* Header Hero */}
-        <div className="text-center max-w-3xl mx-auto mb-16 mt-8">
+        <div className="text-center max-w-3xl mx-auto mb-16 mt-2">
           <div className="inline-flex items-center space-x-2 bg-primary-50 text-primary-700 px-4 py-1.5 rounded-full border border-primary-100 mb-6">
             <Truck className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-wider">Store Logistics</span>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/Button';
-import { PhoneCall, Calendar } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 
 export function HeroSection() {
   return (
@@ -36,24 +36,20 @@ export function HeroSection() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <Link href="/book">
+              <Link href="/medicines">
                 <Button size="xl" className="w-full sm:w-auto shadow-xl shadow-primary-500/20">
-                  <PhoneCall className="mr-2 h-5 w-5" />
-                  Talk To Doctor
+                  <ShoppingBag className="mr-2 h-5 w-5" />
+                  Shop Medicines
                 </Button>
               </Link>
-              <Link href="/services">
+              <Link href="/shipping">
                 <Button variant="outline" size="xl" className="w-full sm:w-auto bg-white">
-                  Explore Services
+                  Delivery Info
                 </Button>
               </Link>
             </div>
             
             <div className="mt-10 flex items-center justify-center lg:justify-start gap-6 text-sm text-slate-500">
-              <div className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4 text-primary-500" />
-                <span>Instant Booking</span>
-              </div>
               <div className="flex items-center">
                 <div className="flex -space-x-2 mr-3">
                   {[1, 2, 3, 4].map((i) => (
@@ -62,7 +58,7 @@ export function HeroSection() {
                     </div>
                   ))}
                 </div>
-                <span>500+ Happy Patients</span>
+                <span>5000+ Happy Customers</span>
               </div>
             </div>
           </motion.div>

@@ -24,6 +24,8 @@ export interface Order {
   status: 'Pending' | 'Shipped' | 'Delivered' | 'Cancelled';
   paymentMethod: string;
   trackingNumber: string | null;
+  courierName: string | null;
+  trackingUrl: string | null;
   items: OrderItem[];
   createdAt: string;
 }
@@ -40,6 +42,8 @@ function mapRowToOrder(row: any): Order {
     status: row.status || 'Pending',
     paymentMethod: row.payment_method || 'Cash on Delivery',
     trackingNumber: row.tracking_number || null,
+    courierName: row.courier_name || null,
+    trackingUrl: row.tracking_url || null,
     items: Array.isArray(row.items) ? row.items : [],
     createdAt: row.created_at || new Date().toISOString()
   };
@@ -55,6 +59,8 @@ function mapOrderToRow(order: Order) {
     status: order.status,
     payment_method: order.paymentMethod,
     tracking_number: order.trackingNumber,
+    courier_name: order.courierName,
+    tracking_url: order.trackingUrl,
     items: order.items,
     created_at: order.createdAt
   };
@@ -137,12 +143,14 @@ export function useOrders() {
     };
   }, [connectionStatus]);
 
-  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'trackingNumber'>) => {
+  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status' | 'trackingNumber' | 'courierName' | 'trackingUrl'>) => {
     const newOrder: Order = {
       ...orderData,
       id: `ORD-${Date.now()}`,
       status: 'Pending',
       trackingNumber: null,
+      courierName: null,
+      trackingUrl: null,
       createdAt: new Date().toISOString()
     };
 
@@ -173,12 +181,24 @@ export function useOrders() {
     return newOrder;
   };
 
-  const updateOrderStatus = async (id: string, status: Order['status'], trackingNumber?: string | null) => {
+  const updateOrderStatus = async (
+    id: string, 
+    status: Order['status'], 
+    trackingNumber?: string | null,
+    courierName?: string | null,
+    trackingUrl?: string | null
+  ) => {
     if (isSupabaseConfigured() && connectionStatus === 'connected') {
       try {
         const updatePayload: any = { status };
         if (trackingNumber !== undefined) {
           updatePayload.tracking_number = trackingNumber;
+        }
+        if (courierName !== undefined) {
+          updatePayload.courier_name = courierName;
+        }
+        if (trackingUrl !== undefined) {
+          updatePayload.tracking_url = trackingUrl;
         }
 
         const { error } = await supabase
@@ -188,18 +208,36 @@ export function useOrders() {
 
         if (error) throw error;
 
-        setOrders(prev => prev.map(o => o.id === id ? { ...o, status, ...(trackingNumber !== undefined ? { trackingNumber } : {}) } : o));
+        setOrders(prev => prev.map(o => o.id === id ? { 
+          ...o, 
+          status, 
+          ...(trackingNumber !== undefined ? { trackingNumber } : {}),
+          ...(courierName !== undefined ? { courierName } : {}),
+          ...(trackingUrl !== undefined ? { trackingUrl } : {})
+        } : o));
       } catch (e) {
         console.error('Failed to update order status in Supabase. Mutating local storage fallback instead:', e);
         const current = getLocalOrders();
-        const updated = current.map(o => o.id === id ? { ...o, status, ...(trackingNumber !== undefined ? { trackingNumber } : {}) } : o);
+        const updated = current.map(o => o.id === id ? { 
+          ...o, 
+          status, 
+          ...(trackingNumber !== undefined ? { trackingNumber } : {}),
+          ...(courierName !== undefined ? { courierName } : {}),
+          ...(trackingUrl !== undefined ? { trackingUrl } : {})
+        } : o);
         saveLocalOrders(updated);
         setOrders(updated);
         setConnectionStatus('local');
       }
     } else {
       const current = getLocalOrders();
-      const updated = current.map(o => o.id === id ? { ...o, status, ...(trackingNumber !== undefined ? { trackingNumber } : {}) } : o);
+      const updated = current.map(o => o.id === id ? { 
+        ...o, 
+        status, 
+        ...(trackingNumber !== undefined ? { trackingNumber } : {}),
+        ...(courierName !== undefined ? { courierName } : {}),
+        ...(trackingUrl !== undefined ? { trackingUrl } : {})
+      } : o);
       saveLocalOrders(updated);
       setOrders(updated);
     }

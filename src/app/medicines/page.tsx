@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function MedicinesPage() {
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-20">
+    <div className="min-h-screen bg-slate-50 pt-8 pb-20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-10 text-center md:text-left">
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">Our Medicines</h1>

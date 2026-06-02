@@ -71,8 +71,8 @@ export function SpecialOffers() {
               <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:scale-125 transition-transform duration-500"></div>
               <div className="relative z-10 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">Free Consultation?</h3>
-                  <p className="text-secondary-100 text-sm max-w-xs">Buy products worth ₹2000 and get a free follow-up consultation with our experts.</p>
+                  <h3 className="text-xl font-bold text-white mb-2">Free Express Shipping</h3>
+                  <p className="text-secondary-100 text-sm max-w-xs">Order above ₹500 and get free potency-safe home delivery across India.</p>
                 </div>
                 <div className="hidden sm:block">
                   <div className="w-16 h-16 bg-white text-secondary-600 rounded-full flex items-center justify-center font-bold text-xl shadow-md">

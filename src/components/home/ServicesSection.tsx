@@ -6,12 +6,12 @@ import { Card, CardContent } from '../ui/Card';
 export function ServicesSection() {
   const services = [
     {
-      id: 'consultation',
-      title: 'Expert Consultation',
-      description: 'Connect directly with experienced homoeopathic doctors via secure video or audio calls. Discuss your symptoms in detail and get a personalized treatment plan.',
+      id: 'remedies',
+      title: 'Authentic Remedies',
+      description: 'We source 100% authentic homoeopathic medicines directly from globally certified laboratories like SBL, Dr. Reckeweg, and Schwabe India.',
       icon: <Activity className="h-10 w-10 text-primary-500" />,
       color: 'bg-primary-50',
-      link: '/book'
+      link: '/medicines'
     },
     {
       id: 'medicine',

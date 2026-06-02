@@ -209,3 +209,127 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     createdAt: u.createdAt
   })).reverse();
 }
+
+export async function updateUserProfile(userId: string, name: string, phone: string): Promise<UserProfile> {
+  const local = getLocalUsers();
+  const updatedLocal = local.map((u: any) => u.id === userId ? { ...u, name: name.trim(), phone: phone.trim() } : u);
+  saveLocalUsers(updatedLocal);
+
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('users')
+      .update({ name: name.trim(), phone: phone.trim() })
+      .eq('id', userId);
+    if (error) throw error;
+  }
+
+  // Update current session
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.id === userId) {
+    const updatedUser = { ...currentUser, name: name.trim(), phone: phone.trim() };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event('meducil_auth_change'));
+    }
+    return updatedUser;
+  }
+  throw new Error('User not logged in or mismatching session');
+}
+
+export async function updateUserPassword(userId: string, newPassword: string): Promise<void> {
+  const local = getLocalUsers();
+  const updatedLocal = local.map((u: any) => u.id === userId ? { ...u, password: newPassword.trim() } : u);
+  saveLocalUsers(updatedLocal);
+
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('users')
+      .update({ password: newPassword.trim() })
+      .eq('id', userId);
+    if (error) throw error;
+  }
+}
+
+export async function googleSignInUser(name: string, email: string): Promise<UserProfile> {
+  const cleanEmail = email.trim().toLowerCase();
+  const local = getLocalUsers();
+  const found = local.find((u: any) => u.email.trim().toLowerCase() === cleanEmail);
+  
+  if (found) {
+    const profile: UserProfile = {
+      id: found.id,
+      name: found.name,
+      email: found.email,
+      phone: found.phone || '',
+      createdAt: found.createdAt
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(profile));
+      window.dispatchEvent(new Event('meducil_auth_change'));
+    }
+    return profile;
+  }
+  
+  const newUser = {
+    id: `USR-GGL-${Date.now()}`,
+    name: name,
+    email: cleanEmail,
+    phone: '',
+    createdAt: new Date().toISOString()
+  };
+  
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert([{
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          password: `google_oauth_${newUser.id}`,
+          created_at: newUser.createdAt
+        }]);
+      if (error) throw error;
+    } catch (e) {
+      console.warn('Failed to insert OAuth user to Supabase:', e);
+      saveLocalUsers([...local, { ...newUser, password: `google_oauth_${newUser.id}` }]);
+    }
+  } else {
+    saveLocalUsers([...local, { ...newUser, password: `google_oauth_${newUser.id}` }]);
+  }
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(newUser));
+    window.dispatchEvent(new Event('meducil_auth_change'));
+  }
+  return newUser;
+}
+
+export async function recoverUserPassword(email: string): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', cleanEmail);
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No user account found with this email address');
+      }
+      return;
+    } catch (e: any) {
+      console.warn('Supabase recovery check failed:', e);
+      if (e.message && e.message.includes('No user account')) throw e;
+    }
+  }
+  
+  const local = getLocalUsers();
+  const found = local.find((u: any) => u.email.trim().toLowerCase() === cleanEmail);
+  if (!found) {
+    throw new Error('No user account found with this email address');
+  }
+}
+
