@@ -258,7 +258,6 @@ export default function AdminDashboard() {
   
   // Forgot Password & Social States
   const [showAdminForgotPassword, setShowAdminForgotPassword] = useState(false);
-  const [isAdminGoogleSelectorOpen, setIsAdminGoogleSelectorOpen] = useState(false);
   const [adminRecoveryEmail, setAdminRecoveryEmail] = useState('');
   const [adminRecoverySuccess, setAdminRecoverySuccess] = useState('');
   const [adminRecoveryError, setAdminRecoveryError] = useState('');
@@ -533,19 +532,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAdminGoogleSelectAccount = (name: string, email: string) => {
-    setIsAdminGoogleSelectorOpen(false);
-    setLoginError('');
-    
-    const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail === 'sonalika.ctc29@gmail.com') {
-      sessionStorage.setItem('meducil_admin_authenticated', 'true');
-      setIsAuthenticated(true);
-      setShowAdminForgotPassword(false);
-    } else {
-      setLoginError(`Access Denied: ${email} is not registered as an administrator profile.`);
-    }
-  };
+
 
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1163,28 +1150,7 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                 Access Dashboard <Unlock className="w-4 h-4" />
               </Button>
 
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700/60" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
-                  <span className="bg-[#0b0f17] px-2.5 text-slate-500">Or sign in as admin with</span>
-                </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => setIsAdminGoogleSelectorOpen(true)}
-                className="w-full rounded-xl h-11 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white font-bold flex items-center justify-center gap-2.5 shadow-md transition-all text-xs font-sans group"
-              >
-                <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
-                </svg>
-                Continue with Google
-              </button>
             </form>
           )}
 
@@ -1298,94 +1264,7 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
           </div>
         </motion.div>
 
-        {/* Admin Google Accounts Selector Simulation Modal */}
-        <AnimatePresence>
-          {isAdminGoogleSelectorOpen && (
-            <div className="fixed inset-0 z-[10000] overflow-hidden flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsAdminGoogleSelectorOpen(false)}
-                className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="bg-slate-900 rounded-3xl p-6 max-w-sm w-full border border-slate-750 shadow-2xl relative z-[10001] font-sans text-slate-200"
-              >
-                <div className="text-center mb-6">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
-                  </svg>
-                  <h3 className="text-base font-bold text-white font-sans">Google Administrator SSO</h3>
-                  <p className="text-xs text-slate-400 mt-1">Select an account to access the Fulfillment Desk</p>
-                </div>
 
-                <div className="space-y-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleAdminGoogleSelectAccount("Sonalika Samal", "sonalika.ctc29@gmail.com")}
-                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center font-sans">SS</div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-white font-sans">Sonalika Samal</h4>
-                      <p className="text-[10px] text-slate-400 font-mono truncate">sonalika.ctc29@gmail.com</p>
-                    </div>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => handleAdminGoogleSelectAccount("Abhishek", "abhishekabhinav.av@gmail.com")}
-                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">A</div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-slate-300 font-sans">Abhishek (Denied Test)</h4>
-                      <p className="text-[10px] text-slate-500 font-mono truncate">abhishekabhinav.av@gmail.com</p>
-                    </div>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => handleAdminGoogleSelectAccount("Dr. Ganesh Kumar Das", "dr.ganesh.kumar34@gmail.com")}
-                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">GD</div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-slate-300 font-sans">Dr. Ganesh Kumar Das (Denied Test)</h4>
-                      <p className="text-[10px] text-slate-500 font-mono truncate">dr.ganesh.kumar34@gmail.com</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleAdminGoogleSelectAccount("Guest User", "guest.operator@domain.com")}
-                    className="w-full flex items-center gap-3 p-3 bg-slate-800 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-600 rounded-2xl transition-all text-left opacity-60"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center font-sans">GU</div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-slate-300 font-sans">Non-Admin Guest (Denied Test)</h4>
-                      <p className="text-[10px] text-slate-500 font-mono truncate">guest.operator@domain.com</p>
-                    </div>
-                  </button>
-                </div>
-                
-                <button
-                  onClick={() => setIsAdminGoogleSelectorOpen(false)}
-                  className="mt-6 w-full text-center py-2 text-xs text-slate-400 hover:text-slate-300 font-semibold font-sans"
-                >
-                  Cancel
-                </button>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
