@@ -8,7 +8,7 @@ import { Menu, X, PhoneCall, Stethoscope, ChevronDown, Search, ShoppingCart, Use
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/data/cartContext';
-import { getCurrentUser, logoutUser, signUpUser, signInUser, UserProfile, googleSignInUser, recoverUserPassword } from '@/lib/data/userStore';
+import { getCurrentUser, logoutUser, signUpUser, signInUser, UserProfile, googleSignInUser, recoverUserPassword, getLoggedInHistory, HistoryUser } from '@/lib/data/userStore';
 
 export function Header() {
   const { setCartOpen, getCartCount, addToCart } = useCart();
@@ -29,6 +29,7 @@ export function Header() {
 
   // Google Selector State
   const [isGoogleSelectorOpen, setIsGoogleSelectorOpen] = useState(false);
+  const [googleAccounts, setGoogleAccounts] = useState<HistoryUser[]>([]);
 
   // Auth Form State
   const [authForm, setAuthForm] = useState({
@@ -48,10 +49,12 @@ export function Header() {
 
     // Initial load
     setUser(getCurrentUser());
+    setGoogleAccounts(getLoggedInHistory());
 
     // Listen for auth state changes
     const handleAuthChange = () => {
       setUser(getCurrentUser());
+      setGoogleAccounts(getLoggedInHistory());
     };
     window.addEventListener('meducil_auth_change', handleAuthChange);
 
@@ -739,7 +742,10 @@ export function Header() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setIsGoogleSelectorOpen(true)}
+                    onClick={() => {
+                      setGoogleAccounts(getLoggedInHistory());
+                      setIsGoogleSelectorOpen(true);
+                    }}
                     className="flex items-center justify-center gap-2 border border-slate-200 rounded-xl py-2 px-4 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-705 group"
                   >
                     <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
@@ -799,53 +805,37 @@ export function Header() {
             </div>
 
             <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => handleGoogleSelectAccount("Sonalika Samal", "sonalika.ctc29@gmail.com")}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center font-sans">SS</div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 font-sans">Sonalika Samal</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">sonalika.ctc29@gmail.com</p>
-                </div>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleGoogleSelectAccount("Abhishek", "abhishekabhinav.av@gmail.com")}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center font-sans">A</div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 font-sans">Abhishek</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">abhishekabhinav.av@gmail.com</p>
-                </div>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleGoogleSelectAccount("Dr. Ganesh Kumar Das", "dr.ganesh.kumar34@gmail.com")}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center font-sans">GD</div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 font-sans">Dr. Ganesh Kumar Das</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">dr.ganesh.kumar34@gmail.com</p>
-                </div>
-              </button>
+              {googleAccounts.map((account) => {
+                const initials = account.name
+                  .split(' ')
+                  .map((n: string) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2) || 'G';
+                return (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => handleGoogleSelectAccount(account.name, account.email)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center font-sans">
+                      {initials}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 font-sans">{account.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-mono">{account.email}</p>
+                    </div>
+                  </button>
+                );
+              })}
 
-              <button
-                type="button"
-                onClick={() => handleGoogleSelectAccount("John Doe", "john.doe@gmail.com")}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center font-sans">JD</div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 font-sans">John Doe</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">john.doe@gmail.com</p>
+              {googleAccounts.length === 0 && (
+                <div className="text-center py-4 px-3 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 mb-2">
+                  <p className="text-xs text-slate-500 font-medium">No accounts found in this device history</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Use another account to sign in</p>
                 </div>
-              </button>
+              )}
 
               <button
                 type="button"

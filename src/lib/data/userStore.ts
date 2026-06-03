@@ -12,6 +12,71 @@ export interface UserProfile {
 
 const USERS_LOCAL_KEY = 'meducil_registered_users';
 const LOGGED_IN_USER_KEY = 'meducil_logged_in_user';
+const LOGGED_IN_HISTORY_KEY = 'meducil_logged_in_history';
+
+export interface HistoryUser {
+  name: string;
+  email: string;
+}
+
+export function getLoggedInHistory(): HistoryUser[] {
+  if (typeof window === 'undefined') return [];
+  let history: HistoryUser[] = [];
+  const stored = localStorage.getItem(LOGGED_IN_HISTORY_KEY);
+  if (stored) {
+    try {
+      history = JSON.parse(stored);
+    } catch (e) {
+      // Fallback to local users
+    }
+  }
+
+  if (!history || history.length === 0) {
+    // Pre-populate using registered users on this device if history is empty
+    const localUsers = getLocalUsers();
+    if (localUsers && localUsers.length > 0) {
+      history = localUsers.map((u: any) => ({
+        name: u.name,
+        email: u.email
+      }));
+    }
+  }
+
+  // Deduplicate history items by email
+  const seenEmails = new Set<string>();
+  const uniqueHistory: HistoryUser[] = [];
+
+  for (const user of history) {
+    if (user && user.email) {
+      const emailLower = user.email.trim().toLowerCase();
+      if (!seenEmails.has(emailLower)) {
+        seenEmails.add(emailLower);
+        uniqueHistory.push({
+          name: user.name,
+          email: emailLower
+        });
+      }
+    }
+  }
+
+  // Update storage with the cleaned list
+  if (typeof window !== 'undefined' && uniqueHistory.length > 0) {
+    try {
+      localStorage.setItem(LOGGED_IN_HISTORY_KEY, JSON.stringify(uniqueHistory));
+    } catch (e) {}
+  }
+
+  return uniqueHistory;
+}
+
+export function trackLoggedInUser(name: string, email: string) {
+  if (typeof window === 'undefined') return;
+  const history = getLoggedInHistory();
+  const cleanEmail = email.trim().toLowerCase();
+  const filtered = history.filter((u: any) => u.email.trim().toLowerCase() !== cleanEmail);
+  const updated = [{ name: name.trim(), email: cleanEmail }, ...filtered];
+  localStorage.setItem(LOGGED_IN_HISTORY_KEY, JSON.stringify(updated));
+}
 
 export function getLocalUsers(): any[] {
   if (typeof window === 'undefined') return [];
@@ -87,6 +152,7 @@ export async function signUpUser(name: string, email: string, phone: string, pas
   // Set as logged in
   if (typeof window !== 'undefined') {
     localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(newUser));
+    trackLoggedInUser(newUser.name, newUser.email);
     window.dispatchEvent(new Event('meducil_auth_change'));
   }
 
@@ -118,6 +184,7 @@ export async function signInUser(email: string, password: string): Promise<UserP
 
           if (typeof window !== 'undefined') {
             localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(profile));
+            trackLoggedInUser(profile.name, profile.email);
             window.dispatchEvent(new Event('meducil_auth_change'));
           }
           return profile;
@@ -148,6 +215,7 @@ export async function signInUser(email: string, password: string): Promise<UserP
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(profile));
+        trackLoggedInUser(profile.name, profile.email);
         window.dispatchEvent(new Event('meducil_auth_change'));
       }
       return profile;
@@ -265,6 +333,7 @@ export async function googleSignInUser(name: string, email: string): Promise<Use
     };
     if (typeof window !== 'undefined') {
       localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(profile));
+      trackLoggedInUser(profile.name, profile.email);
       window.dispatchEvent(new Event('meducil_auth_change'));
     }
     return profile;
@@ -301,6 +370,7 @@ export async function googleSignInUser(name: string, email: string): Promise<Use
   
   if (typeof window !== 'undefined') {
     localStorage.setItem(LOGGED_IN_USER_KEY, JSON.stringify(newUser));
+    trackLoggedInUser(newUser.name, newUser.email);
     window.dispatchEvent(new Event('meducil_auth_change'));
   }
   return newUser;
