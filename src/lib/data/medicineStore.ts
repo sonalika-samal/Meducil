@@ -7,11 +7,27 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 const LOCAL_STORAGE_KEY = 'meducil_custom_medicines';
 
 function mapRowToMedicine(row: any): Medicine {
+  let categories: string[] = [];
+  if (Array.isArray(row.categories)) {
+    categories = row.categories;
+  } else if (row.categories && typeof row.categories === 'string') {
+    try {
+      const parsed = JSON.parse(row.categories);
+      categories = Array.isArray(parsed) ? parsed : [row.categories];
+    } catch {
+      categories = row.categories.split(',').map((c: string) => c.trim()).filter(Boolean);
+    }
+  } else if (row.category) {
+    categories = [row.category];
+  }
+
   return {
     id: row.id,
     name: row.name,
     brand: row.brand,
-    category: row.category,
+    category: categories[0] || row.category || '',
+    categories: categories.length > 0 ? categories : [row.category || ''],
+    system: row.system || 'Homeopathy',
     form: row.form,
     quantity: row.quantity,
     mainUsage: row.main_usage || '',
@@ -38,7 +54,9 @@ function mapMedicineToRow(med: Medicine) {
     id: med.id,
     name: med.name,
     brand: med.brand,
-    category: med.category,
+    category: med.categories && med.categories.length > 0 ? med.categories[0] : (med.category || ''),
+    categories: med.categories || [med.category || ''],
+    system: med.system || 'Homeopathy',
     form: med.form,
     quantity: med.quantity,
     main_usage: med.mainUsage,

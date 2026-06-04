@@ -73,6 +73,7 @@ const CATEGORIES = [
 
 const BRANDS = ["SBL", "Dr. Reckeweg", "Wheezal", "Bakson", "Allen", "Schwabe India", "Bach Flower"];
 const FORMS = ["Dilution", "Drops", "Tablets", "Tonic", "Biochemic Tablets", "Ointment", "Globales"];
+const SYSTEMS = ["Homeopathy", "Yellowpathy", "Ayurvedic"];
 
 const SQL_SCHEMA = `-- =========================================================================
 -- MEDUCIL IDEMPOTENT MASTER DATABASE SCHEMA
@@ -86,6 +87,8 @@ CREATE TABLE IF NOT EXISTS medicines (
   name VARCHAR(255) NOT NULL,
   brand VARCHAR(100) NOT NULL,
   category VARCHAR(100) NOT NULL,
+  categories TEXT[] DEFAULT '{}',
+  system VARCHAR(50) DEFAULT 'Homeopathy',
   form VARCHAR(100) NOT NULL,
   quantity VARCHAR(100) NOT NULL,
   main_usage TEXT NOT NULL,
@@ -778,6 +781,8 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
     name: '',
     brand: 'SBL',
     category: 'Cold, Cough & Allergy',
+    categories: ['Cold, Cough & Allergy'] as string[],
+    system: 'Homeopathy',
     form: 'Dilution',
     quantity: '30ml',
     mainUsage: '',
@@ -802,6 +807,8 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
       name: '',
       brand: 'SBL',
       category: 'Cold, Cough & Allergy',
+      categories: ['Cold, Cough & Allergy'],
+      system: 'Homeopathy',
       form: 'Dilution',
       quantity: '30ml',
       mainUsage: '',
@@ -828,6 +835,8 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
       name: medicine.name,
       brand: medicine.brand,
       category: medicine.category,
+      categories: medicine.categories || [medicine.category],
+      system: medicine.system || 'Homeopathy',
       form: medicine.form,
       quantity: medicine.quantity,
       mainUsage: medicine.mainUsage,
@@ -859,7 +868,9 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
     const productPayload = {
       name: formData.name,
       brand: formData.brand,
-      category: formData.category,
+      category: formData.categories && formData.categories.length > 0 ? formData.categories[0] : formData.category,
+      categories: formData.categories,
+      system: formData.system,
       form: formData.form,
       quantity: formData.quantity,
       mainUsage: formData.mainUsage,
@@ -909,7 +920,8 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
     const matchesSearch = med.name.toLowerCase().includes(productSearch.toLowerCase()) || 
                           med.brand.toLowerCase().includes(productSearch.toLowerCase()) ||
                           med.mainUsage.toLowerCase().includes(productSearch.toLowerCase());
-    const matchesCategory = categoryFilter === 'All' || med.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'All' || 
+                            (med.categories ? med.categories.includes(categoryFilter) : med.category === categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
@@ -1061,7 +1073,7 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                   required
                   value={adminRecoveryEmail}
                   onChange={(e) => setAdminRecoveryEmail(e.target.value)}
-                  placeholder="admin@domain.com"
+                  placeholder="abc@gmail.com"
                   className="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder-slate-600 font-sans"
                 />
               </div>
@@ -1708,8 +1720,15 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                                 {medicine.potency && <span className="text-slate-500 font-medium">({medicine.potency})</span>}
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-slate-600 font-medium">
-                              {medicine.category}
+                            <td className="px-6 py-4">
+                              <div className="text-slate-700 font-medium truncate max-w-[200px]" title={medicine.categories ? medicine.categories.join(', ') : medicine.category}>
+                                {medicine.categories && medicine.categories.length > 0 
+                                  ? medicine.categories.join(', ') 
+                                  : medicine.category}
+                              </div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                {medicine.system || 'Homeopathy'}
+                              </div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="text-slate-700 font-medium">{medicine.form}</div>
@@ -2546,14 +2565,39 @@ AMOUNT TO COLLECT: ₹${order.totalAmount}`;
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-600 block">Category (Health Concern) *</label>
+                      <label className="text-xs font-bold text-slate-600 block">Medicine System *</label>
                       <select 
-                        value={formData.category}
-                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        value={formData.system}
+                        onChange={(e) => setFormData({...formData, system: e.target.value})}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                       >
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        {SYSTEMS.map(sys => <option key={sys} value={sys}>{sys}</option>)}
                       </select>
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block mb-2">Categories (Health Concerns - Select multiple) *</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-4 rounded-xl border border-slate-200">
+                        {CATEGORIES.map((c) => {
+                          const isChecked = formData.categories.includes(c);
+                          return (
+                            <label key={c} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 hover:text-slate-900 select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const updatedCategories = e.target.checked
+                                    ? [...formData.categories, c]
+                                    : formData.categories.filter((cat) => cat !== c);
+                                  setFormData({ ...formData, categories: updatedCategories });
+                                }}
+                                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
+                              />
+                              {c}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="space-y-1">

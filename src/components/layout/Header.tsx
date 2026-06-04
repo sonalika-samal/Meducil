@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, X, PhoneCall, Stethoscope, ChevronDown, Search, ShoppingCart, User, LogOut, Mail, Phone, Lock, AlertTriangle } from 'lucide-react';
+import { Menu, X, PhoneCall, Stethoscope, ChevronDown, Search, ShoppingCart, User, LogOut, Mail, Phone, Lock, AlertTriangle, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/data/cartContext';
@@ -15,6 +15,7 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [medicinesDropdownOpen, setMedicinesDropdownOpen] = useState(false);
+  const [comingSoonSystem, setComingSoonSystem] = useState<string | null>(null);
   const pathname = usePathname();
 
   // Auth States
@@ -282,7 +283,9 @@ export function Header() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Medicines', href: '/medicines', hasDropdown: true },
+    { name: 'Homeopathy', href: '/medicines', hasDropdown: true },
+    { name: 'Yellowpathy', href: '#yellowpathy-soon', isComingSoon: true, systemName: 'Yellowpathy' },
+    { name: 'Ayurvedic', href: '#ayurvedic-soon', isComingSoon: true, systemName: 'Ayurvedic' },
     { name: 'Shipping & Delivery', href: '/shipping' },
     { name: 'Contact', href: '/contact' },
   ];
@@ -330,19 +333,33 @@ export function Header() {
               onMouseEnter={() => link.hasDropdown && setMedicinesDropdownOpen(true)}
               onMouseLeave={() => link.hasDropdown && setMedicinesDropdownOpen(false)}
             >
-              <Link
-                href={link.href}
-                className={`flex items-center text-sm font-medium transition-colors py-2 ${
-                  pathname === link.href || (link.hasDropdown && pathname.startsWith('/medicines'))
-                    ? 'text-primary-600 font-bold'
-                    : pathname === '/' && !isScrolled 
-                    ? 'text-white/80 hover:text-white' 
-                    : 'text-slate-600 hover:text-primary-600'
-                }`}
-              >
-                {link.name}
-                {link.hasDropdown && <ChevronDown className="ml-1 h-4 w-4" />}
-              </Link>
+              {link.isComingSoon ? (
+                <button
+                  onClick={() => setComingSoonSystem(link.systemName || null)}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-all py-2 border-none bg-transparent cursor-pointer ${
+                    pathname === '/' && !isScrolled 
+                      ? 'text-white/80 hover:text-white' 
+                      : 'text-slate-600 hover:text-primary-600'
+                  }`}
+                >
+                  {link.name}
+                  <span className="bg-amber-100 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase scale-90">Soon</span>
+                </button>
+              ) : (
+                <Link
+                  href={link.href}
+                  className={`flex items-center text-sm font-medium transition-colors py-2 ${
+                    pathname === link.href || (link.hasDropdown && pathname.startsWith('/medicines'))
+                      ? 'text-primary-600 font-bold'
+                      : pathname === '/' && !isScrolled 
+                      ? 'text-white/80 hover:text-white' 
+                      : 'text-slate-600 hover:text-primary-600'
+                  }`}
+                >
+                  {link.name}
+                  {link.hasDropdown && <ChevronDown className="ml-1 h-4 w-4" />}
+                </Link>
+              )}
               
               {link.hasDropdown && (
                 <AnimatePresence>
@@ -506,18 +523,31 @@ export function Header() {
               )}
               {navLinks.map((link) => (
                 <div key={link.name} className="flex flex-col">
-                  <Link
-                    href={link.href}
-                    onClick={() => !link.hasDropdown && setMobileMenuOpen(false)}
-                    className={`p-3 rounded-xl text-base font-medium flex justify-between items-center ${
-                      pathname === link.href || (link.hasDropdown && pathname.startsWith('/medicines'))
-                        ? 'bg-primary-50 text-primary-600' 
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {link.name}
-                    {link.hasDropdown && <ChevronDown className="h-5 w-5" />}
-                  </Link>
+                  {link.isComingSoon ? (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setComingSoonSystem(link.systemName || null);
+                      }}
+                      className="p-3 rounded-xl text-base font-medium flex justify-between items-center text-slate-600 hover:bg-slate-50 border-none bg-transparent text-left cursor-pointer"
+                    >
+                      <span>{link.name}</span>
+                      <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Soon</span>
+                    </button>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      onClick={() => !link.hasDropdown && setMobileMenuOpen(false)}
+                      className={`p-3 rounded-xl text-base font-medium flex justify-between items-center ${
+                        pathname === link.href || (link.hasDropdown && pathname.startsWith('/medicines'))
+                          ? 'bg-primary-50 text-primary-600' 
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {link.name}
+                      {link.hasDropdown && <ChevronDown className="h-5 w-5" />}
+                    </Link>
+                  )}
                   {link.hasDropdown && (
                     <div className="pl-6 pr-4 py-2 space-y-2 border-l-2 border-primary-100 ml-4 mt-1">
                       {medicineCategories.map((category) => (
@@ -639,7 +669,7 @@ export function Header() {
                       required
                       value={recoveryEmail}
                       onChange={(e) => setRecoveryEmail(e.target.value)}
-                      placeholder="name@domain.com"
+                      placeholder="abc@gmail.com"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-955 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white"
                     />
                   </div>
@@ -702,7 +732,7 @@ export function Header() {
                       required
                       value={authForm.email}
                       onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                      placeholder="name@domain.com"
+                      placeholder="abc@gmail.com"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-955 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white"
                     />
                   </div>
@@ -817,6 +847,66 @@ export function Header() {
       )}
     </AnimatePresence>
 
+    {/* Stunning Coming Soon Modal */}
+    <AnimatePresence>
+      {comingSoonSystem && (
+        <div className="fixed inset-0 z-[9999] overflow-hidden flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setComingSoonSystem(null)}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl relative z-[10000] font-sans text-center"
+          >
+            <button
+              onClick={() => setComingSoonSystem(null)}
+              className="absolute right-4 top-4 p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-primary-100">
+              <Sparkles className="w-8 h-8 animate-pulse text-primary-500" />
+            </div>
+
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+              {comingSoonSystem} Section
+            </h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              We are working diligently to launch our new range of {comingSoonSystem === 'Yellowpathy' ? 'premium Allopathic (Modern)' : 'authentic Ayurvedic'} wellness products. 
+              We partner directly with certified manufacturers and ISO certified labs to ensure the highest standard of potency and quality.
+            </p>
+
+            <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 mb-6 text-xs text-slate-605 text-left space-y-2">
+              <p className="font-bold text-slate-700">Need immediate help or consultation?</p>
+              <p className="text-slate-500 leading-normal">For custom consultations or direct health concern support, connect with our expert team at Aashutosh Clinic.</p>
+              <a 
+                href="https://wa.me/917846969508" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-primary-600 hover:text-primary-700 font-bold underline gap-1 mt-1"
+              >
+                Chat on WhatsApp &rarr;
+              </a>
+            </div>
+
+            <Button
+              onClick={() => setComingSoonSystem(null)}
+              className="w-full justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold h-10 text-xs shadow transition-all"
+            >
+              Back to Home
+            </Button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
 
   </>
 );

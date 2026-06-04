@@ -120,7 +120,7 @@ export function ContactForm() {
         <Input 
           label="Email Address" 
           type="email" 
-          placeholder="you@domain.com" 
+          placeholder="abc@gmail.com" 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required 

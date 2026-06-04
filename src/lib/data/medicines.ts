@@ -14,6 +14,8 @@ export interface Medicine {
   mrp: number;
   image: string;
   category: string;
+  categories?: string[]; // Support multiple categories
+  system?: string; // Support system filter (Homeopathy, Yellowpathy, Ayurvedic)
   rating: number;
   reviews: number;
   brand: string;
@@ -89,7 +91,7 @@ const placeholderImage = "https://images.unsplash.com/photo-1584308666744-24d5c4
 const dropsImage = "https://images.unsplash.com/photo-1550572017-edb799988a69?w=500&q=80";
 const tabletsImage = "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500&q=80";
 
-export const medicines: Medicine[] = [
+const staticMedicinesRaw: Medicine[] = [
   // CATEGORY 1: Cold, Cough & Allergy
   {
     id: "cca-1",
@@ -2334,3 +2336,10 @@ export const medicines: Medicine[] = [
     isDoctorRecommended: true
   }
 ];
+
+export const medicines: Medicine[] = staticMedicinesRaw.map(m => ({
+  ...m,
+  categories: m.categories || [m.category],
+  system: m.system || 'Homeopathy'
+}));
+

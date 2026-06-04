@@ -50,7 +50,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
   
   // Related Products
   const relatedProducts = medicines
-    .filter(m => m.category === medicine.category && m.id !== medicine.id)
+    .filter(m => {
+      const mCats = m.categories || [m.category || ''];
+      const medCats = medicine.categories || [medicine.category || ''];
+      const hasOverlap = mCats.some(c => medCats.includes(c));
+      return hasOverlap && m.id !== medicine.id;
+    })
     .slice(0, 4);
 
   return (
@@ -61,7 +66,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
         <ChevronRight className="w-4 h-4 mx-2" />
         <span>Medicines</span>
         <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-slate-900 font-medium">{medicine.category}</span>
+        <span className="text-slate-900 font-medium">
+          {medicine.categories && medicine.categories.length > 0 
+            ? medicine.categories.join(', ') 
+            : medicine.category}
+        </span>
         <ChevronRight className="w-4 h-4 mx-2" />
         <span className="text-primary-600 font-medium line-clamp-1">{medicine.name}</span>
       </div>
@@ -252,7 +261,9 @@ export default function ProductDetailClient({ productId }: { productId: string }
       {/* Bottom Section - Related Products */}
       {relatedProducts.length > 0 && (
         <div className="border-t border-slate-100 pt-16 mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-8">Similar Medicines in {medicine.category}</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-8">
+            Similar Medicines in {medicine.categories && medicine.categories.length > 0 ? medicine.categories[0] : medicine.category}
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedProducts.map(p => (
               <ProductCard key={p.id} medicine={p} />
