@@ -121,8 +121,8 @@ export function HeroCarousel() {
       </AnimatePresence>
 
       {/* Static Search Bar Overlay */}
-      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-center pt-20">
-        <div className="container mx-auto px-4 md:px-6 w-full">
+      <div className="absolute inset-0 z-20 pointer-events-none">
+        <div className="container mx-auto px-4 md:px-6 h-full flex flex-col justify-center">
           <div className="max-w-2xl">
             {/* Invisible Title */}
             <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight opacity-0 select-none">
@@ -161,7 +161,11 @@ export function HeroCarousel() {
 
             {/* Invisible CTA Button to align center spacing perfectly */}
             <div className="opacity-0 select-none pointer-events-none">
-              <Button size="xl" className="opacity-0">
+              <Button 
+                size="xl" 
+                variant={slides[current].theme === 'dark' ? 'primary' : 'outline'}
+                className={slides[current].theme === 'light' ? 'bg-white text-slate-900 hover:bg-slate-50 border-white' : 'bg-accent-500 hover:bg-accent-600 text-white border-accent-500'}
+              >
                 {slides[current].cta}
               </Button>
             </div>
