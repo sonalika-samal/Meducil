@@ -30,6 +30,50 @@ export default function MedicinesClient() {
   const searchParam = searchParams.get('search') || searchParams.get('q') || '';
   const [activeSystem, setActiveSystem] = useState<string>('Homeopathy');
 
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<{
+    correctedQuery: string;
+    matchedMedicines: string[];
+    matchedCategories: string[];
+    explanation: string;
+  } | null>(null);
+  const [isAiEnabled, setIsAiEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!isAiEnabled || !searchQuery.trim()) {
+      setAiSearchResults(null);
+      setIsAiLoading(false);
+      return;
+    }
+
+    setIsAiLoading(true);
+    const queryToSearch = searchQuery.trim();
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/search/ai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: queryToSearch }),
+        });
+
+        if (!response.ok) throw new Error('AI search API error');
+        
+        const data = await response.json();
+        setAiSearchResults(data);
+      } catch (err) {
+        console.error('Fuzzy AI search failed:', err);
+        setAiSearchResults(null);
+      } finally {
+        setIsAiLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isAiEnabled]);
+
   useEffect(() => {
     if (systemParam && ['Homeopathy', 'Yellowpathy', 'Ayurvedic'].includes(systemParam)) {
       setActiveSystem(systemParam);
@@ -181,13 +225,96 @@ export default function MedicinesClient() {
 
           {/* Main Content - Category Sections */}
           <div className="flex-grow">
+            {/* AI Status Banner */}
+            {searchQuery.trim() && (
+              <div className="mb-8 p-4 bg-white/40 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    isAiLoading ? 'bg-primary-50 text-primary-600' : 'bg-green-50 text-green-600'
+                  }`}>
+                    <Sparkles className={`w-5 h-5 ${isAiLoading ? 'animate-spin text-primary-500' : 'text-green-500'}`} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
+                      Gemini AI Search Interpretation
+                      {isAiLoading && (
+                        <span className="text-[10px] text-slate-400 font-normal px-2 py-0.5 bg-slate-100 rounded-full animate-pulse">
+                          Processing...
+                        </span>
+                      )}
+                    </h4>
+                    {isAiLoading ? (
+                      <p className="text-xs text-slate-500 font-sans mt-0.5 leading-relaxed">
+                        Analyzing "{searchQuery}" for spelling mistakes and health concerns...
+                      </p>
+                    ) : aiSearchResults ? (
+                      <div className="mt-1 font-sans">
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          <strong className="text-slate-800">Corrected Query:</strong> "{aiSearchResults.correctedQuery}"
+                        </p>
+                        <p className="text-xs text-slate-500/90 leading-relaxed mt-0.5">
+                          {aiSearchResults.explanation}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 font-sans mt-0.5 leading-relaxed">
+                        Type to search. Gemini AI is enabled to correct typos and find relevant categories automatically.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => setIsAiEnabled(!isAiEnabled)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                      isAiEnabled
+                        ? 'bg-slate-900 border-slate-950 text-white hover:bg-slate-800'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {isAiEnabled ? 'Disable AI Search' : 'Enable AI Search'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {categoriesData.map((category, index) => {
               const categoryMedicines = medicines.filter(m => {
                 const matchesSystem = (m.system || 'Homeopathy') === 'Homeopathy';
                 const matchesCategory = m.categories 
                   ? m.categories.includes(category.name) 
                   : m.category === category.name;
-                const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase());
+                
+                let matchesSearch = false;
+                
+                if (isAiEnabled && aiSearchResults && searchQuery.trim()) {
+                  // AI matching logic:
+                  // 1. Match names returned by Gemini
+                  const matchesAiName = aiSearchResults.matchedMedicines.some(
+                    name => name.toLowerCase() === m.name.toLowerCase()
+                  );
+                  
+                  // 2. Match categories returned by Gemini
+                  const matchesAiCategory = aiSearchResults.matchedCategories.some(
+                    catName => m.categories 
+                      ? m.categories.map(c => c.toLowerCase()).includes(catName.toLowerCase())
+                      : m.category.toLowerCase() === catName.toLowerCase()
+                  );
+                  
+                  // 3. Fallback to standard substring matches on name/usage/description
+                  const matchesBasicName = m.name.toLowerCase().includes(searchQuery.toLowerCase());
+                  const matchesUsage = m.mainUsage ? m.mainUsage.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+                  
+                  matchesSearch = matchesAiName || matchesAiCategory || matchesBasicName || matchesUsage;
+                } else {
+                  // Standard search matching
+                  const matchesBasicName = m.name.toLowerCase().includes(searchQuery.toLowerCase());
+                  const matchesUsage = m.mainUsage ? m.mainUsage.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+                  const matchesBrand = m.brand ? m.brand.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+                  matchesSearch = matchesBasicName || matchesUsage || matchesBrand;
+                }
+
                 return matchesSystem && matchesCategory && matchesSearch;
               });
 
