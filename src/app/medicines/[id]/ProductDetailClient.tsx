@@ -5,16 +5,32 @@ import Image from 'next/image';
 import { Medicine } from '@/lib/data/medicines';
 import { useMedicines } from '@/lib/data/medicineStore';
 import { Button } from '@/components/ui/Button';
-import { ShoppingCart, Star, Heart, Share2, ShieldCheck, CheckCircle2, ChevronRight, Zap, ArrowLeft, Pill } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Share2, ShieldCheck, CheckCircle2, ChevronRight, Zap, ArrowLeft, Pill, Send } from 'lucide-react';
 import { ProductCard } from '@/components/medicines/ProductCard';
 import Link from 'next/link';
 import { useCart } from '@/lib/data/cartContext';
+import { useWishlist } from '@/lib/data/wishlistContext';
+import { useReviews, submitReview } from '@/lib/data/reviewStore';
 
 export default function ProductDetailClient({ productId }: { productId: string }) {
   const { medicines, loading } = useMedicines();
   const { addToCart } = useCart();
+  const { toggleWishlist, isWishlisted } = useWishlist();
+  const { reviews: fetchedReviews, loading: reviewsLoading, refetch: refetchReviews } = useReviews(productId);
+
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
+
+  // Review form states
+  const [reviewName, setReviewName] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const wishlisted = isWishlisted(productId);
   
   const medicine = medicines.find(m => m.id === productId);
 
@@ -34,9 +50,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
           <Pill className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Medicine Not Found</h2>
-        <p className="text-slate-500 max-w-md mb-8">
+        <p className="text-slate-500 max-w-md mb-4">
           The medicine you are looking for does not exist, or has been removed by the administrator.
         </p>
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-150 text-left max-w-md w-full mb-8 text-xs font-mono space-y-1 text-slate-500 mx-auto">
+          <p><span className="font-bold text-slate-700">Requested ID:</span> {productId || 'undefined'}</p>
+          <p><span className="font-bold text-slate-700">Loaded count:</span> {medicines?.length || 0}</p>
+          <p><span className="font-bold text-slate-700">Available IDs:</span> {medicines?.slice(0, 5).map(m => m.id).join(', ') || 'none'}</p>
+        </div>
         <Link href="/medicines">
           <Button className="rounded-full px-8 bg-primary-600 text-white hover:bg-primary-700">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Shop
@@ -45,6 +66,44 @@ export default function ProductDetailClient({ productId }: { productId: string }
       </div>
     );
   }
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewName.trim()) {
+      setReviewError('Name is required');
+      return;
+    }
+    if (!reviewComment.trim()) {
+      setReviewError('Review comment is required');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setReviewError('');
+    setReviewSuccess('');
+
+    try {
+      await submitReview(productId, reviewName, reviewRating, reviewComment);
+      setReviewSuccess('Your review has been added successfully! The product rating has been updated.');
+      setReviewName('');
+      setReviewRating(5);
+      setReviewComment('');
+      refetchReviews();
+      setTimeout(() => setReviewSuccess(''), 5000);
+    } catch (err: any) {
+      setReviewError(err.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  };
 
   const discountPercentage = Math.round(((medicine.mrp - medicine.price) / medicine.mrp) * 100);
   
@@ -185,11 +244,22 @@ export default function ProductDetailClient({ productId }: { productId: string }
           </div>
 
           <div className="flex items-center gap-4 pt-6 border-t border-slate-100">
-            <button className="flex items-center text-sm font-medium text-slate-500 hover:text-red-500 transition-colors">
-              <Heart className="w-5 h-5 mr-2" /> Add to Wishlist
+            <button 
+              onClick={() => toggleWishlist(medicine)}
+              className={`flex items-center text-sm font-medium transition-colors ${
+                wishlisted ? 'text-rose-600 hover:text-rose-700' : 'text-slate-500 hover:text-red-500'
+              }`}
+            >
+              <Heart className={`w-5 h-5 mr-2 ${wishlisted ? 'fill-current' : ''}`} /> 
+              {wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
             </button>
-            <button className="flex items-center text-sm font-medium text-slate-500 hover:text-blue-500 transition-colors">
-              <Share2 className="w-5 h-5 mr-2" /> Share
+            <button 
+              onClick={handleShare}
+              className={`flex items-center text-sm font-medium transition-colors ${
+                shareCopied ? 'text-green-650 hover:text-green-700 font-bold' : 'text-slate-500 hover:text-blue-500'
+              }`}
+            >
+              <Share2 className="w-5 h-5 mr-2" /> {shareCopied ? 'Link Copied!' : 'Share'}
             </button>
           </div>
         </div>
@@ -248,11 +318,181 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
           )}
           {activeTab === 'reviews' && (
-            <div className="text-center p-12 bg-slate-50 rounded-2xl border border-slate-100">
-              <Star className="w-12 h-12 text-yellow-400 fill-current mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Customer Reviews</h3>
-              <p className="mb-6">This product has {medicine.reviews} reviews averaging {medicine.rating} out of 5 stars.</p>
-              <Button variant="outline">Write a Review</Button>
+            <div className="space-y-10">
+              {/* Reviews Summary Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-100">
+                {/* Score */}
+                <div className="text-center md:border-r md:border-slate-200 md:pr-8 space-y-2">
+                  <span className="text-5xl font-black text-slate-900 block">{medicine.rating}</span>
+                  <div className="flex justify-center text-yellow-400">
+                    {[1, 2, 3, 4, 5].map((s) => {
+                      const isFilled = s <= Math.round(medicine.rating);
+                      return <Star key={s} className={`w-5 h-5 ${isFilled ? 'fill-current' : 'text-slate-300'}`} />;
+                    })}
+                  </div>
+                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider mt-1">
+                    Based on {medicine.reviews} reviews
+                  </span>
+                </div>
+
+                {/* Rating Distribution Bars */}
+                <div className="md:col-span-2 space-y-2.5">
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    // Count how many reviews have this rating
+                    const matchingCount = fetchedReviews.filter((r) => r.rating === stars).length;
+                    const percentage = fetchedReviews.length > 0 ? (matchingCount / fetchedReviews.length) * 100 : 0;
+                    return (
+                      <div key={stars} className="flex items-center text-xs gap-3">
+                        <span className="w-3 font-bold text-slate-500">{stars}</span>
+                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                        <div className="flex-grow h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-yellow-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="w-14 font-bold text-slate-450 text-right">
+                          {matchingCount} ({Math.round(percentage)}%)
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Write a Review Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 pt-4">
+                {/* Left: Reviews Feed */}
+                <div className="lg:col-span-3 space-y-6">
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    Customer Feedback ({fetchedReviews.length})
+                  </h3>
+                  
+                  {reviewsLoading ? (
+                    <div className="py-8 text-center">
+                      <div className="w-8 h-8 border-3 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      <p className="text-xs text-slate-400 font-semibold">Loading reviews...</p>
+                    </div>
+                  ) : fetchedReviews.length === 0 ? (
+                    <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100 border-dashed p-6">
+                      <p className="text-sm font-semibold text-slate-500 mb-1">No reviews yet</p>
+                      <p className="text-xs text-slate-400">Be the first to share your experience with this medicine!</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 space-y-6">
+                      {fetchedReviews.map((rev) => (
+                        <div key={rev.id} className="pt-6 first:pt-0 space-y-2">
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <span className="font-bold text-slate-900 block text-sm">{rev.name}</span>
+                              <span className="text-[10px] text-slate-400 font-medium block">
+                                {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex text-yellow-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3.5 h-3.5 ${s <= rev.rating ? 'fill-current' : 'text-slate-200'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                            {rev.comment}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Submit Review Form */}
+                <div className="lg:col-span-2 bg-slate-50 rounded-3xl border border-slate-100 p-6 self-start space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Add a Review</h3>
+                    <p className="text-xs text-slate-500">Your feedback helps other buyers make healthier decisions.</p>
+                  </div>
+
+                  <form onSubmit={handleReviewSubmit} className="space-y-4">
+                    {/* Reviewer Name */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={reviewName}
+                        onChange={(e) => setReviewName(e.target.value)}
+                        placeholder="e.g. John Doe"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        disabled={isSubmittingReview}
+                      />
+                    </div>
+
+                    {/* Rating Select */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Product Rating</label>
+                      <div className="flex items-center gap-1.5 pt-1">
+                        {[1, 2, 3, 4, 5].map((s) => {
+                          const isHoveredOrSelected = s <= reviewRating;
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setReviewRating(s)}
+                              className={`p-0.5 rounded-full transition-transform hover:scale-125 ${
+                                isHoveredOrSelected ? 'text-yellow-400' : 'text-slate-300'
+                              }`}
+                              disabled={isSubmittingReview}
+                            >
+                              <Star className={`w-7 h-7 ${isHoveredOrSelected ? 'fill-current' : ''}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Review Comment */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Review Comments</label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Share details of your experience with this product..."
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 leading-relaxed"
+                        disabled={isSubmittingReview}
+                      />
+                    </div>
+
+                    {reviewError && (
+                      <div className="p-3 bg-red-50 border border-red-150 text-red-700 rounded-xl text-[10px] font-bold">
+                        {reviewError}
+                      </div>
+                    )}
+
+                    {reviewSuccess && (
+                      <div className="p-3 bg-green-50 border border-green-150 text-green-700 rounded-xl text-[10px] font-bold leading-normal animate-fadeIn">
+                        {reviewSuccess}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmittingReview}
+                      className="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold h-10 text-xs shadow-md mt-2 flex items-center justify-center gap-1.5"
+                    >
+                      {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                  </form>
+                </div>
+              </div>
             </div>
           )}
         </div>

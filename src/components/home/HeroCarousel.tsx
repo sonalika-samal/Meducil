@@ -41,6 +41,7 @@ const slides = [
 
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
+  const [homeQuery, setHomeQuery] = useState('');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,6 +96,38 @@ export function HeroCarousel() {
               >
                 {slides[current].subtitle}
               </motion.p>
+              
+              {/* Premium Glassmorphic Search Bar */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="relative max-w-md w-full mb-8 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg"
+              >
+                <input
+                  type="text"
+                  placeholder="Search medicines by name or health concern..."
+                  value={homeQuery}
+                  onChange={(e) => setHomeQuery(e.target.value)}
+                  className="bg-transparent text-white placeholder-white/75 text-xs px-4 py-2 w-full focus:outline-none border-none font-sans"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && homeQuery.trim()) {
+                      window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    if (homeQuery.trim()) {
+                      window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
+                    }
+                  }}
+                  className="bg-primary-600 hover:bg-primary-700 text-white rounded-xl h-10 px-5 font-bold text-xs shrink-0 border-none cursor-pointer"
+                >
+                  Search
+                </Button>
+              </motion.div>
+
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}

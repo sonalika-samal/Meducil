@@ -27,6 +27,7 @@ export default function MedicinesClient() {
   
   const searchParams = useSearchParams();
   const systemParam = searchParams.get('system');
+  const searchParam = searchParams.get('search') || searchParams.get('q') || '';
   const [activeSystem, setActiveSystem] = useState<string>('Homeopathy');
 
   useEffect(() => {
@@ -34,6 +35,12 @@ export default function MedicinesClient() {
       setActiveSystem(systemParam);
     }
   }, [systemParam]);
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParam]);
 
   // Handle scroll spy
   useEffect(() => {
@@ -64,8 +71,9 @@ export default function MedicinesClient() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* System Selector Tab Bar */}
-      <div className="w-full flex justify-center lg:justify-start">
+      {/* Search Header Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* System Selector Tab Bar */}
         <div className="inline-flex p-1.5 bg-white/90 backdrop-blur rounded-2xl border border-slate-200/60 shadow-sm max-w-full">
           <button 
             onClick={() => setActiveSystem('Homeopathy')}
@@ -99,6 +107,18 @@ export default function MedicinesClient() {
             <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> Ayurvedic
             <span className="bg-emerald-100 text-emerald-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase leading-none">Soon</span>
           </button>
+        </div>
+
+        {/* Global Medicine Search Input */}
+        <div className="relative w-full md:w-80">
+          <input 
+            type="text" 
+            placeholder="Search all medicines or concerns..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs font-sans transition-all shadow-sm"
+          />
+          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
         </div>
       </div>
 

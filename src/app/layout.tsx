@@ -6,6 +6,9 @@ import { Footer } from "@/components/layout/Footer";
 import { FloatingHelp } from "@/components/layout/FloatingHelp";
 import { CartProvider } from "@/lib/data/cartContext";
 import { CartDrawer } from "@/components/layout/CartDrawer";
+import { WishlistProvider } from "@/lib/data/wishlistContext";
+import { CompareProvider } from "@/lib/data/compareContext";
+import { CompareDrawer } from "@/components/layout/CompareDrawer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,15 +29,21 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <CartProvider>
-          <Header />
-          <main className="flex-grow pt-20">
-            {children}
-          </main>
-          <Footer />
-          <FloatingHelp />
-          <CartDrawer />
+          <WishlistProvider>
+            <CompareProvider>
+              <Header />
+              <main className="flex-grow pt-20">
+                {children}
+              </main>
+              <Footer />
+              <FloatingHelp />
+              <CartDrawer />
+              <CompareDrawer />
+            </CompareProvider>
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>
   );
 }
+

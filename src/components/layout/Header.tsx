@@ -4,14 +4,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, X, PhoneCall, Stethoscope, ChevronDown, Search, ShoppingCart, User, LogOut, Mail, Phone, Lock, AlertTriangle, Sparkles } from 'lucide-react';
+import { Menu, X, PhoneCall, Stethoscope, ChevronDown, Search, ShoppingCart, User, LogOut, Mail, Phone, Lock, AlertTriangle, Sparkles, Heart, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/data/cartContext';
+import { useWishlist } from '@/lib/data/wishlistContext';
 import { getCurrentUser, logoutUser, signUpUser, signInUser, UserProfile, googleSignInUser, recoverUserPassword } from '@/lib/data/userStore';
 
 export function Header() {
   const { setCartOpen, getCartCount, addToCart } = useCart();
+  const { wishlist, wishlistOpen, setWishlistOpen, removeFromWishlist, getWishlistCount } = useWishlist();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [medicinesDropdownOpen, setMedicinesDropdownOpen] = useState(false);
@@ -456,6 +459,15 @@ export function Header() {
               </AnimatePresence>
             </div>
 
+            <button onClick={() => setWishlistOpen(true)} className="relative hover:text-rose-600 transition-colors mr-2">
+              <Heart className="h-5 w-5" />
+              {getWishlistCount() > 0 && (
+                <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
+                  {getWishlistCount()}
+                </span>
+              )}
+            </button>
+
             <button onClick={() => setCartOpen(true)} className="relative hover:text-primary-600 transition-colors">
               <ShoppingCart className="h-5 w-5" />
               {getCartCount() > 0 && (
@@ -564,26 +576,47 @@ export function Header() {
                   )}
                 </div>
               ))}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between px-2">
-                {!user && (
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between px-2 gap-4">
+                {!user ? (
                   <button
                     onClick={() => { setMobileMenuOpen(false); setAuthMode('login'); setIsAuthModalOpen(true); }}
-                    className="flex items-center text-slate-600 hover:text-primary-600 transition-colors"
+                    className="flex items-center text-slate-600 hover:text-primary-600 transition-colors text-sm font-bold"
                   >
-                    <User className="h-5 w-5 mr-2" />
-                    Sign In / Register
+                    <User className="h-5 w-5 mr-1" />
+                    Sign In
                   </button>
+                ) : (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center text-slate-600 hover:text-primary-600 transition-colors text-sm font-bold"
+                  >
+                    <User className="h-5 w-5 mr-1" />
+                    Profile
+                  </Link>
                 )}
-                <button onClick={() => { setMobileMenuOpen(false); setCartOpen(true); }} className="flex items-center text-slate-600 relative">
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Cart
-                  {getCartCount() > 0 && (
-                    <span className="absolute -top-1 right-8 bg-accent-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
-                      {getCartCount()}
-                    </span>
-                  )}
-                </button>
+                <div className="flex gap-4">
+                  <button onClick={() => { setMobileMenuOpen(false); setWishlistOpen(true); }} className="flex items-center text-slate-600 relative hover:text-rose-600 transition-colors text-sm font-bold">
+                    <Heart className="h-5 w-5 mr-1.5" />
+                    Wishlist
+                    {getWishlistCount() > 0 && (
+                      <span className="absolute -top-1 -right-3.5 bg-rose-500 text-white text-[9px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
+                        {getWishlistCount()}
+                      </span>
+                    )}
+                  </button>
+                  <button onClick={() => { setMobileMenuOpen(false); setCartOpen(true); }} className="flex items-center text-slate-600 relative hover:text-primary-600 transition-colors text-sm font-bold">
+                    <ShoppingCart className="h-5 w-5 mr-1.5" />
+                    Cart
+                    {getCartCount() > 0 && (
+                      <span className="absolute -top-1 -right-3.5 bg-accent-500 text-white text-[9px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
+                        {getCartCount()}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
+
               <div className="pt-4 border-t border-slate-100">
                 <Link href="/medicines" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="primary" className="w-full justify-center">
@@ -903,6 +936,134 @@ export function Header() {
             >
               Back to Home
             </Button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+
+    {/* Stunning Glassmorphic Wishlist Drawer */}
+    <AnimatePresence>
+      {wishlistOpen && (
+        <div className="fixed inset-0 z-[9999] overflow-hidden flex justify-end font-sans">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.5 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setWishlistOpen(false)}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
+          {/* Drawer Body */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="w-full max-w-md bg-white h-full relative z-10 shadow-2xl flex flex-col p-6 border-l border-slate-100"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                <h3 className="text-lg font-bold text-slate-900">Your Wishlist</h3>
+                <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {getWishlistCount()}
+                </span>
+              </div>
+              <button
+                onClick={() => setWishlistOpen(false)}
+                className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="flex-grow overflow-y-auto py-4 space-y-4 custom-scrollbar">
+              {wishlist.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
+                  <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center border border-rose-100 shadow-sm">
+                    <Heart className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800">Wishlist is Empty</h4>
+                    <p className="text-xs text-slate-400 max-w-[200px] mx-auto mt-1">
+                      Save your favorite remedies to view them here later.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setWishlistOpen(false);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs px-6 h-9 font-bold"
+                  >
+                    Browse Medicines
+                  </Button>
+                </div>
+              ) : (
+                wishlist.map((med) => (
+                  <div key={med.id} className="flex gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition-colors">
+                    {/* Image */}
+                    <div className="w-16 h-16 bg-white border border-slate-100 rounded-xl p-1.5 flex items-center justify-center shrink-0 relative overflow-hidden">
+                      <Image
+                        src={med.image}
+                        alt={med.name}
+                        width={48}
+                        height={48}
+                        className="object-contain animate-fadeIn"
+                      />
+                    </div>
+                    {/* Info */}
+                    <div className="flex-grow min-w-0">
+                      <span className="text-[10px] font-bold text-primary-600 block uppercase tracking-wider">{med.brand}</span>
+                      <Link
+                        href={`/medicines/${med.id}`}
+                        onClick={() => setWishlistOpen(false)}
+                        className="font-bold text-slate-800 text-xs hover:text-primary-600 transition-colors line-clamp-1 block"
+                      >
+                        {med.name}
+                      </Link>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">{med.form} • {med.quantity}</span>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="font-black text-slate-950 text-sm">₹{med.price}</span>
+                        <div className="flex gap-1.5">
+                          <Button
+                            onClick={() => {
+                              addToCart(med, 1);
+                            }}
+                            className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg h-7 px-2.5 text-[10px] font-bold flex items-center gap-1"
+                          >
+                            <ShoppingCart className="w-3 h-3" /> Add
+                          </Button>
+                          <button
+                            onClick={() => removeFromWishlist(med.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-slate-200 bg-white"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {wishlist.length > 0 && (
+              <div className="pt-4 border-t border-slate-100">
+                <Button
+                  onClick={() => {
+                    wishlist.forEach((item) => addToCart(item, 1));
+                    setWishlistOpen(false);
+                  }}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-11 text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart className="w-4 h-4" /> Add All to Cart
+                </Button>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

@@ -6,6 +6,8 @@ import { Medicine } from '@/lib/data/medicines';
 import { Button } from '@/components/ui/Button';
 import { ShoppingCart, Star, Heart, GitCompare, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
 import { useCart } from '@/lib/data/cartContext';
+import { useWishlist } from '@/lib/data/wishlistContext';
+import { useCompare } from '@/lib/data/compareContext';
 
 interface ProductCardProps {
   medicine: Medicine;
@@ -13,6 +15,11 @@ interface ProductCardProps {
 
 export function ProductCard({ medicine }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { toggleWishlist, isWishlisted } = useWishlist();
+  const { addToCompare, removeFromCompare, isInCompare } = useCompare();
+
+  const wishlisted = isWishlisted(medicine.id);
+  const compared = isInCompare(medicine.id);
   const discountPercentage = Math.round(((medicine.mrp - medicine.price) / medicine.mrp) * 100);
 
   return (
@@ -34,10 +41,38 @@ export function ProductCard({ medicine }: ProductCardProps) {
       </div>
 
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-        <button className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shadow-sm border border-slate-100">
-          <Heart className="w-4 h-4" />
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleWishlist(medicine);
+          }}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm border ${
+            wishlisted
+              ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+              : 'bg-white/90 backdrop-blur-sm border-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50'
+          }`}
+          title={wishlisted ? "Remove from wishlist" : "Add to wishlist: Save this medicine to view it later"}
+        >
+          <Heart className={`w-4 h-4 ${wishlisted ? 'fill-current' : ''}`} />
         </button>
-        <button className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors shadow-sm border border-slate-100">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (compared) {
+              removeFromCompare(medicine.id);
+            } else {
+              addToCompare(medicine);
+            }
+          }}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm border ${
+            compared
+              ? 'bg-blue-50 border-blue-200 text-blue-500 hover:bg-blue-100'
+              : 'bg-white/90 backdrop-blur-sm border-slate-100 text-slate-400 hover:text-blue-500 hover:bg-blue-50'
+          }`}
+          title={compared ? "Remove from comparison" : "Compare: Add this medicine to compare side-by-side with others"}
+        >
           <GitCompare className="w-4 h-4" />
         </button>
       </div>
