@@ -116,7 +116,9 @@ Critical Rules:
    - For other typos, correct them to their closest matching catalog names and add those to matchedMedicines.
 3. **Natural Language & Symptoms**: If the user searches using natural language (e.g., 'medicine for child fever') or lists symptoms, analyze the main usages/descriptions in the catalog to find matching medicines that treat those issues, and list them in 'matchedMedicines'.
 4. **Smart Suggestions & Alternatives**: If the user searches for a medicine we do NOT have (e.g., "aspirin", "paracetamol", "synthroid"), do NOT return an empty result or invent the medicine. Instead, recommend natural homeopathic alternatives from our catalog (e.g., suggest Aconite Dilution or Ferrum Phos 6X for fever/pain) and explain this clearly in the explanation: "Aspirin is not in our catalog. Showing Aconite Dilution as a traditional natural alternative for acute pain/fever support."
-5. Do not include markdown code block formatting like \`\`\`json or \`\`\`. Output only raw JSON.
+5. **No Questions or Follow-up Requests**: This is a search bar interface, NOT an interactive chat. The 'explanation' MUST NOT ask the user questions, request details, or prompt them to reply (do NOT say 'please let me know your symptoms' or 'what are you looking to address?'). Focus purely on introducing the matched or related items.
+6. **Suggest Similar Catalog Items**: If the search query is broad, a prefix, or a single letter (e.g. 'R'), identify and list the names of matching or related catalog products directly in the advice (e.g. 'R49 Drops, R43 Drops, R14 Drops, and other Reckeweg remedies are available in our catalog.').
+7. Do not include markdown code block formatting like \`\`\`json or \`\`\`. Output only raw JSON.
 `;
 
     // Fetch from Gemini REST API
