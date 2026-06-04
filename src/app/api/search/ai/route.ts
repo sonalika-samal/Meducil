@@ -123,7 +123,9 @@ Rules:
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API returned status ${response.status}`);
+      const errText = await response.text();
+      console.error('Gemini API Error Response:', errText);
+      throw new Error(`Gemini API returned status ${response.status}: ${errText}`);
     }
 
     const result = await response.json();
