@@ -97,36 +97,8 @@ export function HeroCarousel() {
                 {slides[current].subtitle}
               </motion.p>
               
-              {/* Premium Glassmorphic Search Bar */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-                className="relative max-w-md w-full mb-8 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg"
-              >
-                <input
-                  type="text"
-                  placeholder="Search medicines by name or health concern..."
-                  value={homeQuery}
-                  onChange={(e) => setHomeQuery(e.target.value)}
-                  className="bg-transparent text-white placeholder-white/75 text-xs px-4 py-2 w-full focus:outline-none border-none font-sans"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && homeQuery.trim()) {
-                      window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
-                    }
-                  }}
-                />
-                <Button
-                  onClick={() => {
-                    if (homeQuery.trim()) {
-                      window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
-                    }
-                  }}
-                  className="bg-primary-600 hover:bg-primary-700 text-white rounded-xl h-10 px-5 font-bold text-xs shrink-0 border-none cursor-pointer"
-                >
-                  Search
-                </Button>
-              </motion.div>
+              {/* Spacer matching the search bar height (54px) + margin bottom (32px) = 86px */}
+              <div className="h-[54px] mb-8" />
 
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
@@ -147,6 +119,55 @@ export function HeroCarousel() {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Static Search Bar Overlay */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-center pt-20">
+        <div className="container mx-auto px-4 md:px-6 w-full">
+          <div className="max-w-2xl">
+            {/* Invisible Title */}
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight opacity-0 select-none">
+              {slides[current].title}
+            </h1>
+            {/* Invisible Subtitle */}
+            <p className="text-lg md:text-xl mb-10 opacity-0 select-none">
+              {slides[current].subtitle}
+            </p>
+            
+            {/* The actual interactive search bar */}
+            <div className="relative max-w-md w-full mb-8 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg pointer-events-auto">
+              <input
+                type="text"
+                placeholder="Search medicines by name or health concern..."
+                value={homeQuery}
+                onChange={(e) => setHomeQuery(e.target.value)}
+                className="bg-transparent text-white placeholder-white/75 text-xs px-4 py-2 w-full focus:outline-none border-none font-sans"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && homeQuery.trim()) {
+                    window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
+                  }
+                }}
+              />
+              <Button
+                onClick={() => {
+                  if (homeQuery.trim()) {
+                    window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
+                  }
+                }}
+                className="bg-primary-600 hover:bg-primary-700 text-white rounded-xl h-10 px-5 font-bold text-xs shrink-0 border-none cursor-pointer"
+              >
+                Search
+              </Button>
+            </div>
+
+            {/* Invisible CTA Button to align center spacing perfectly */}
+            <div className="opacity-0 select-none pointer-events-none">
+              <Button size="xl" className="opacity-0">
+                {slides[current].cta}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <button 
         onClick={prevSlide}
