@@ -99,8 +99,9 @@ You MUST respond with a valid JSON object matching this schema:
 }
 
 Rules:
+- If the search query contains a misspelled medicine name (e.g. "allum cepa", "arnka", "nux vomka"), identify the correct medicine from our catalog (e.g. "Allium Cepa", "Arnica Montana", "Nux Vomica").
+- In such cases, you MUST set the 'correctedQuery' to be the exact name of that matched medicine from our catalog, and add that exact name to the 'matchedMedicines' array.
 - If they searched for a symptom, list all medicines that treat that symptom (check mainUsage and description fields of the list above).
-- If they misspelled a medicine name, match the correct medicine name in the "matchedMedicines" array.
 - Only return exact names and categories present in the lists provided above.
 `;
 
