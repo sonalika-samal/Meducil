@@ -92,6 +92,8 @@ You MUST respond with a valid JSON object matching this schema:
 }
 
 Rules:
+- Match suggestions to the EXACT names listed in the catalog above. Never return names that do not exist in the catalog.
+- If the image contains a misspelled version of a medicine name (e.g. 'allum cepa', 'arnka', 'belladona', 'nux vomka'), map it to the corresponding catalog name (e.g., "Allium Cepa Dilution", "Arnica Montana Dilution", "Belladonna Dilution", "Nux Vomica Dilution").
 - If no matching medicines from our catalog are found or could be inferred, return an empty "suggestions" array.
 - Do not wrap in markdown \`\`\`json. Return only the raw JSON.
 `;

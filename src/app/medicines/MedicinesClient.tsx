@@ -335,22 +335,68 @@ export default function MedicinesClient() {
                       </p>
                     ) : imageSuggestions && imageSuggestions.length > 0 ? (
                       <div>
-                        <p className="text-xs text-slate-600 font-sans mt-1 mb-3">
-                          The following matches were found. Click any recommendation to search:
+                        <p className="text-xs text-slate-600 font-sans mt-1 mb-4 font-semibold">
+                          We found the following matching products in our database. Click a product to view or select:
                         </p>
-                        <div className="flex flex-wrap gap-2.5">
-                          {imageSuggestions.map((suggestion, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                setSearchQuery(suggestion.name);
-                              }}
-                              className="px-4 py-2 bg-white/80 hover:bg-primary-50 border border-slate-200 hover:border-primary-200 text-slate-700 hover:text-primary-700 rounded-xl text-xs font-bold font-sans flex flex-col items-start text-left shadow-sm hover:shadow transition-all cursor-pointer"
-                            >
-                              <span>{suggestion.name}</span>
-                              <span className="text-[9px] text-slate-400 font-normal mt-0.5">{suggestion.reason}</span>
-                            </button>
-                          ))}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {imageSuggestions.map((suggestion, idx) => {
+                            const med = medicines.find(
+                              m => {
+                                const lowerName = suggestion.name.toLowerCase().trim();
+                                const lowerMName = m.name.toLowerCase().trim();
+                                return lowerMName === lowerName || 
+                                       lowerMName.includes(lowerName) || 
+                                       lowerName.includes(lowerMName);
+                              }
+                            );
+                            if (!med) {
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => setSearchQuery(suggestion.name)}
+                                  className="px-4 py-2 bg-white/80 hover:bg-primary-50 border border-slate-200 hover:border-primary-200 text-slate-700 hover:text-primary-700 rounded-xl text-xs font-bold font-sans flex flex-col items-start text-left shadow-sm hover:shadow transition-all cursor-pointer"
+                                >
+                                  <span>{suggestion.name}</span>
+                                  <span className="text-[9px] text-slate-400 font-normal mt-0.5">{suggestion.reason}</span>
+                                </button>
+                              );
+                            }
+                            return (
+                              <div 
+                                key={med.id} 
+                                onClick={() => setSearchQuery(med.name)}
+                                className="bg-white/90 border border-slate-200/60 rounded-2xl p-3 flex gap-3 items-center shadow-sm hover:shadow-md hover:border-primary-200 transition-all cursor-pointer select-none"
+                              >
+                                {med.image && (
+                                  <img 
+                                    src={med.image} 
+                                    alt={med.name} 
+                                    className="w-14 h-14 object-cover rounded-xl border border-slate-100/80 flex-shrink-0" 
+                                  />
+                                )}
+                                <div className="flex-grow min-w-0">
+                                  <h4 className="text-xs font-bold text-slate-800 truncate font-sans">{med.name}</h4>
+                                  <p className="text-[9px] text-slate-400 font-sans mt-0.5">{med.brand} • {med.quantity}</p>
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    <span className="text-xs font-bold text-primary-600 font-sans">₹{med.price}</span>
+                                    {med.mrp > med.price && (
+                                      <span className="text-[10px] text-slate-400 line-through">₹{med.mrp}</span>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] text-green-600 font-semibold font-sans mt-1 bg-green-50 px-2 py-0.5 rounded-md inline-block leading-normal">
+                                    {suggestion.reason}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col gap-1 flex-shrink-0 self-start">
+                                  <Link href={`/medicines/${med.id}`} onClick={(e) => e.stopPropagation()}>
+                                    <span className="inline-block px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[9px] font-bold text-center text-decoration-none">
+                                      View
+                                    </span>
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ) : (
@@ -406,6 +452,19 @@ export default function MedicinesClient() {
                   )
                 )}
 
+                {/* Pharmacist Advice / Smart Explanation Banner */}
+                {isAiEnabled && aiSearchResults && aiSearchResults.explanation && (
+                  <div className="mt-3 p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl flex items-start gap-3 shadow-[0_2px_10px_rgb(22,163,74,0.03)] backdrop-blur-sm">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100/80 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                      <span className="text-base leading-none">👨‍⚕️</span>
+                    </div>
+                    <div className="flex-grow">
+                      <h4 className="text-xs font-bold text-slate-800 font-sans mb-0.5">Pharmacist Advice</h4>
+                      <p className="text-[11px] text-slate-600 leading-relaxed font-sans">{aiSearchResults.explanation}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Status indicator when Smart search is disabled */}
                 {!isAiEnabled && (
                   <div className="text-[10px] text-slate-400 px-1 mt-1 flex items-center gap-1.5">
@@ -432,21 +491,29 @@ export default function MedicinesClient() {
                 
                 if (isAiEnabled && aiSearchResults && searchQuery.trim()) {
                   // AI matching logic:
-                  // 1. Match names returned by Gemini
+                  // 1. Match names returned by Gemini (handling exact or substring/ingredient matches)
                   const matchesAiName = aiSearchResults.matchedMedicines.some(
-                    name => name.toLowerCase() === m.name.toLowerCase()
+                    name => {
+                      const lowerName = name.toLowerCase().trim();
+                      const lowerMName = m.name.toLowerCase().trim();
+                      return lowerMName === lowerName || 
+                             lowerMName.includes(lowerName) || 
+                             lowerName.includes(lowerMName);
+                    }
                   );
                   
-                  // 2. Match categories returned by Gemini
-                  const matchesAiCategory = aiSearchResults.matchedCategories.some(
-                    catName => m.categories 
-                      ? m.categories.map(c => c.toLowerCase()).includes(catName.toLowerCase())
-                      : m.category.toLowerCase() === catName.toLowerCase()
-                  );
+                  // 2. Match categories returned by Gemini (only if no specific medicines were matched)
+                  const matchesAiCategory = aiSearchResults.matchedMedicines.length === 0 && 
+                    aiSearchResults.matchedCategories.some(
+                      catName => m.categories 
+                        ? m.categories.map(c => c.toLowerCase()).includes(catName.toLowerCase())
+                        : m.category.toLowerCase() === catName.toLowerCase()
+                    );
                   
-                  // 3. Fallback to standard substring matches on name/usage/description
-                  const matchesBasicName = m.name.toLowerCase().includes(searchQuery.toLowerCase());
-                  const matchesUsage = m.mainUsage ? m.mainUsage.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+                  // 3. Fallback to standard substring matches using the spelling-corrected query
+                  const queryToUse = aiSearchResults.correctedQuery || searchQuery;
+                  const matchesBasicName = m.name.toLowerCase().includes(queryToUse.toLowerCase());
+                  const matchesUsage = m.mainUsage ? m.mainUsage.toLowerCase().includes(queryToUse.toLowerCase()) : false;
                   
                   matchesSearch = matchesAiName || matchesAiCategory || matchesBasicName || matchesUsage;
                 } else {
