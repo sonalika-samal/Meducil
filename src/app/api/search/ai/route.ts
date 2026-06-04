@@ -6,8 +6,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export async function POST(req: Request) {
+  let rawQuery = '';
   try {
-    const { query: rawQuery } = await req.json();
+    const body = await req.json();
+    rawQuery = body.query || '';
 
     if (!rawQuery || typeof rawQuery !== 'string' || !rawQuery.trim()) {
       return NextResponse.json({
@@ -142,10 +144,10 @@ Rules:
   } catch (error) {
     console.error('Error in Gemini AI search API:', error);
     return NextResponse.json({
-      correctedQuery: '',
+      correctedQuery: rawQuery,
       matchedMedicines: [],
       matchedCategories: [],
-      explanation: 'Error occurred during AI processing.'
+      explanation: ''
     });
   }
 }

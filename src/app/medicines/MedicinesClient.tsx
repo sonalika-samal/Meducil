@@ -321,22 +321,22 @@ export default function MedicinesClient() {
                   </div>
                   <div className="flex-grow">
                     <h3 className="text-base font-bold text-slate-900 font-sans flex items-center gap-2">
-                      AI Prescription Scanner
+                      Prescription & Label Matches
                       {isAnalyzingImage && (
                         <span className="text-[10px] font-normal text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full animate-pulse">
-                          Reading image...
+                          Scanning...
                         </span>
                       )}
                     </h3>
                     
                     {isAnalyzingImage ? (
                       <p className="text-xs text-slate-500 font-sans mt-1">
-                        Analyzing your prescription with Gemini Multimodal AI. Reading handwriting, details, and matching to catalog...
+                        Analyzing your uploaded image to identify matching products in our store...
                       </p>
                     ) : imageSuggestions && imageSuggestions.length > 0 ? (
                       <div>
                         <p className="text-xs text-slate-600 font-sans mt-1 mb-3">
-                          We analyzed the image and found matches in our database. Click any recommendation to view:
+                          The following matches were found. Click any recommendation to search:
                         </p>
                         <div className="flex flex-wrap gap-2.5">
                           {imageSuggestions.map((suggestion, idx) => (
@@ -356,10 +356,10 @@ export default function MedicinesClient() {
                     ) : (
                       <div>
                         <p className="text-xs text-slate-600 font-sans mt-1">
-                          Gemini AI could not extract any matching medicine names or symptoms from this image.
+                          Could not identify any matching medicine names or symptoms from this image.
                         </p>
                         <p className="text-[10px] text-slate-400 font-sans mt-0.5">
-                          Ensure the image is clear and legible.
+                          Please ensure the photo is clear and legible.
                         </p>
                       </div>
                     )}
@@ -379,57 +379,45 @@ export default function MedicinesClient() {
               </div>
             )}
 
-            {/* AI Status Banner */}
+            {/* Smart Search Correction (Google Did-You-Mean Style) */}
             {searchQuery.trim() && (
-              <div className="mb-8 p-4 bg-white/40 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    isAiLoading ? 'bg-primary-50 text-primary-600' : 'bg-green-50 text-green-600'
-                  }`}>
-                    <Sparkles className={`w-5 h-5 ${isAiLoading ? 'animate-spin text-primary-500' : 'text-green-500'}`} />
+              <div className="mb-6 font-sans">
+                {isAiLoading ? (
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5 px-1 animate-pulse">
+                    <div className="w-2.5 h-2.5 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                    Searching...
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
-                      Gemini AI Search Interpretation
-                      {isAiLoading && (
-                        <span className="text-[10px] text-slate-400 font-normal px-2 py-0.5 bg-slate-100 rounded-full animate-pulse">
-                          Processing...
-                        </span>
-                      )}
-                    </h4>
-                    {isAiLoading ? (
-                      <p className="text-xs text-slate-500 font-sans mt-0.5 leading-relaxed">
-                        Analyzing "{searchQuery}" for spelling mistakes and health concerns...
-                      </p>
-                    ) : aiSearchResults ? (
-                      <div className="mt-1 font-sans">
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          <strong className="text-slate-800">Corrected Query:</strong> "{aiSearchResults.correctedQuery}"
-                        </p>
-                        <p className="text-xs text-slate-500/90 leading-relaxed mt-0.5">
-                          {aiSearchResults.explanation}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-500 font-sans mt-0.5 leading-relaxed">
-                        Type to search. Gemini AI is enabled to correct typos and find relevant categories automatically.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                ) : (
+                  isAiEnabled && aiSearchResults && aiSearchResults.correctedQuery && 
+                  aiSearchResults.correctedQuery.toLowerCase() !== searchQuery.toLowerCase().trim() && (
+                    <div className="text-xs text-slate-500 bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-sm">
+                      <span>
+                        Showing results for <strong className="text-slate-800 italic">"{aiSearchResults.correctedQuery}"</strong>. 
+                        {' '}Search instead for <button 
+                          onClick={() => {
+                            setIsAiEnabled(false);
+                          }}
+                          className="text-primary-600 hover:text-primary-700 underline font-bold bg-transparent border-none p-0 cursor-pointer inline ml-1"
+                        >
+                          "{searchQuery}"
+                        </button>.
+                      </span>
+                    </div>
+                  )
+                )}
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => setIsAiEnabled(!isAiEnabled)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      isAiEnabled
-                        ? 'bg-slate-900 border-slate-950 text-white hover:bg-slate-800'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {isAiEnabled ? 'Disable AI Search' : 'Enable AI Search'}
-                  </button>
-                </div>
+                {/* Status indicator when Smart search is disabled */}
+                {!isAiEnabled && (
+                  <div className="text-[10px] text-slate-400 px-1 mt-1 flex items-center gap-1.5">
+                    <span>Direct search matches active.</span>
+                    <button 
+                      onClick={() => setIsAiEnabled(true)}
+                      className="text-primary-600 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      Enable smart search
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
