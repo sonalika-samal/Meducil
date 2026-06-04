@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import Link from 'next/link';
 
 const slides = [
@@ -42,6 +42,25 @@ const slides = [
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const [homeQuery, setHomeQuery] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      sessionStorage.setItem('meducil_pending_prescription', base64);
+      sessionStorage.setItem('meducil_pending_mime', file.type);
+      window.location.href = `/medicines?image-search=true`;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,6 +74,15 @@ export function HeroCarousel() {
 
   return (
     <div className="relative h-[80vh] min-h-[600px] w-full overflow-hidden bg-slate-900 pt-20">
+      {/* Hidden File Input for Prescription Scanning */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        accept="image/*" 
+        className="hidden" 
+        onChange={handleFileChange} 
+      />
+
       <AnimatePresence initial={false} mode="wait">
         <motion.div
           key={current}
@@ -147,6 +175,13 @@ export function HeroCarousel() {
                   }
                 }}
               />
+              <button 
+                onClick={triggerFileSelect}
+                className="p-2 text-white/60 hover:text-white rounded-xl hover:bg-white/10 transition-all border-none bg-transparent cursor-pointer flex-shrink-0 mr-1"
+                title="Search by prescription/label image"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
               <Button
                 onClick={() => {
                   if (homeQuery.trim()) {

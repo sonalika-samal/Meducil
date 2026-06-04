@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { categoriesData } from '@/lib/data/medicines';
 import { useMedicines } from '@/lib/data/medicineStore';
 import { ProductCard } from '@/components/medicines/ProductCard';
-import { ShieldPlus, Thermometer, Leaf, Activity, Zap, Pill, Heart, Droplets, Sparkles, Search, SlidersHorizontal, ArrowRight } from 'lucide-react';
+import { ShieldPlus, Thermometer, Leaf, Activity, Zap, Pill, Heart, Droplets, Sparkles, Search, SlidersHorizontal, ArrowRight, Camera } from 'lucide-react';
 import Link from 'next/link';
 
 const iconMap: Record<string, any> = {
@@ -29,6 +29,65 @@ export default function MedicinesClient() {
   const systemParam = searchParams.get('system');
   const searchParam = searchParams.get('search') || searchParams.get('q') || '';
   const [activeSystem, setActiveSystem] = useState<string>('Homeopathy');
+
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imageSuggestions, setImageSuggestions] = useState<Array<{ name: string; reason: string }> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const analyzeImageBase64 = async (base64: string, mimeType: string) => {
+    setIsAnalyzingImage(true);
+    setImageSuggestions(null);
+    try {
+      const response = await fetch('/api/search/prescription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64,
+          mimeType: mimeType,
+        }),
+      });
+
+      if (!response.ok) throw new Error('API error');
+      const data = await response.json();
+      setImageSuggestions(data.suggestions || []);
+    } catch (err) {
+      console.error('Image analysis failed:', err);
+      setImageSuggestions([]);
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      analyzeImageBase64(base64, file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  useEffect(() => {
+    const isImageSearch = searchParams.get('image-search');
+    if (isImageSearch === 'true') {
+      const pendingImage = sessionStorage.getItem('meducil_pending_prescription');
+      const pendingMime = sessionStorage.getItem('meducil_pending_mime');
+      if (pendingImage && pendingMime) {
+        sessionStorage.removeItem('meducil_pending_prescription');
+        sessionStorage.removeItem('meducil_pending_mime');
+        analyzeImageBase64(pendingImage, pendingMime);
+      }
+    }
+  }, [searchParams]);
 
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState<{
@@ -115,6 +174,15 @@ export default function MedicinesClient() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Hidden File Input for Prescription Scanning */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        accept="image/*" 
+        className="hidden" 
+        onChange={handleFileChange} 
+      />
+
       {/* Search Header Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         {/* System Selector Tab Bar */}
@@ -160,9 +228,16 @@ export default function MedicinesClient() {
             placeholder="Search all medicines or concerns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs font-sans transition-all shadow-sm"
+            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs font-sans transition-all shadow-sm"
           />
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+          <button 
+            onClick={triggerFileSelect}
+            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer"
+            title="Search by prescription/label image"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -178,9 +253,16 @@ export default function MedicinesClient() {
                   placeholder="Search medicines..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all"
                 />
                 <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+                <button 
+                  onClick={triggerFileSelect}
+                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer"
+                  title="Search by prescription/label image"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="flex items-center justify-between mb-4">
@@ -225,6 +307,78 @@ export default function MedicinesClient() {
 
           {/* Main Content - Category Sections */}
           <div className="flex-grow">
+            {/* Image Suggestions Panel */}
+            {(isAnalyzingImage || imageSuggestions) && (
+              <div className="mb-8 p-6 bg-white/60 backdrop-blur-md border border-slate-200/80 rounded-3xl shadow-lg relative overflow-hidden">
+                {/* Background accent */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-100/30 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                    isAnalyzingImage ? 'bg-primary-50 text-primary-600 animate-pulse' : 'bg-primary-100 text-primary-600'
+                  }`}>
+                    <Camera className={`w-6 h-6 ${isAnalyzingImage ? 'animate-bounce' : ''}`} />
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="text-base font-bold text-slate-900 font-sans flex items-center gap-2">
+                      AI Prescription Scanner
+                      {isAnalyzingImage && (
+                        <span className="text-[10px] font-normal text-slate-400 px-2 py-0.5 bg-slate-100 rounded-full animate-pulse">
+                          Reading image...
+                        </span>
+                      )}
+                    </h3>
+                    
+                    {isAnalyzingImage ? (
+                      <p className="text-xs text-slate-500 font-sans mt-1">
+                        Analyzing your prescription with Gemini Multimodal AI. Reading handwriting, details, and matching to catalog...
+                      </p>
+                    ) : imageSuggestions && imageSuggestions.length > 0 ? (
+                      <div>
+                        <p className="text-xs text-slate-600 font-sans mt-1 mb-3">
+                          We analyzed the image and found matches in our database. Click any recommendation to view:
+                        </p>
+                        <div className="flex flex-wrap gap-2.5">
+                          {imageSuggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                setSearchQuery(suggestion.name);
+                              }}
+                              className="px-4 py-2 bg-white/80 hover:bg-primary-50 border border-slate-200 hover:border-primary-200 text-slate-700 hover:text-primary-700 rounded-xl text-xs font-bold font-sans flex flex-col items-start text-left shadow-sm hover:shadow transition-all cursor-pointer"
+                            >
+                              <span>{suggestion.name}</span>
+                              <span className="text-[9px] text-slate-400 font-normal mt-0.5">{suggestion.reason}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-xs text-slate-600 font-sans mt-1">
+                          Gemini AI could not extract any matching medicine names or symptoms from this image.
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-sans mt-0.5">
+                          Ensure the image is clear and legible.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button 
+                    onClick={() => {
+                      setImageSuggestions(null);
+                      setIsAnalyzingImage(false);
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all border-none bg-transparent cursor-pointer self-start"
+                    title="Dismiss suggestions"
+                  >
+                    <span className="text-lg leading-none font-bold">&times;</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* AI Status Banner */}
             {searchQuery.trim() && (
               <div className="mb-8 p-4 bg-white/40 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
