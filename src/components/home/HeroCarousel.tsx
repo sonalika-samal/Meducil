@@ -112,7 +112,7 @@ export function HeroCarousel() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className={`text-5xl md:text-7xl font-bold mb-6 tracking-tight ${slides[current].theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 md:mb-6 tracking-tight min-h-[72px] sm:min-h-[80px] md:min-h-[96px] lg:min-h-[120px] xl:min-h-[144px] ${slides[current].theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
               >
                 {slides[current].title}
               </motion.h1>
@@ -120,7 +120,7 @@ export function HeroCarousel() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
-                className={`text-lg md:text-xl mb-10 min-h-[56px] md:min-h-[64px] ${slides[current].theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}
+                className={`text-sm sm:text-base md:text-lg lg:text-xl mb-8 md:mb-10 min-h-[40px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px] ${slides[current].theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}
               >
                 {slides[current].subtitle}
               </motion.p>
@@ -153,11 +153,11 @@ export function HeroCarousel() {
         <div className="container mx-auto px-4 md:px-6 h-full flex flex-col justify-center">
           <div className="max-w-2xl">
             {/* Invisible Title */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight opacity-0 select-none">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 md:mb-6 tracking-tight opacity-0 select-none min-h-[72px] sm:min-h-[80px] md:min-h-[96px] lg:min-h-[120px] xl:min-h-[144px]">
               {slides[current].title}
             </h1>
             {/* Invisible Subtitle */}
-            <p className="text-lg md:text-xl mb-10 opacity-0 select-none min-h-[56px] md:min-h-[64px]">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-8 md:mb-10 opacity-0 select-none min-h-[40px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px]">
               {slides[current].subtitle}
             </p>
             
