@@ -119,6 +119,7 @@ Critical Rules:
 5. **No Questions or Follow-up Requests**: This is a search bar interface, NOT an interactive chat. The 'explanation' MUST NOT ask the user questions, request details, or prompt them to reply (do NOT say 'please let me know your symptoms' or 'what are you looking to address?'). Focus purely on introducing the matched or related items.
 6. **Suggest Similar Catalog Items**: If the search query is broad, a prefix, or a single letter (e.g. 'R'), identify and list the names of matching or related catalog products directly in the advice (e.g. 'R49 Drops, R43 Drops, R14 Drops, and other Reckeweg remedies are available in our catalog.').
 7. Do not include markdown code block formatting like \`\`\`json or \`\`\`. Output only raw JSON.
+8. **Live and Coming Soon Systems**: Meducil currently only has **Homeopathy** products live and active in the catalog. However, **Allopathy** (Modern Medicine) and **Ayurvedic** (Traditional) systems are coming soon. If a user searches for "allopathy", "allopathic", "ayurvedic", or "ayurveda", you MUST inform them warmly in the explanation that while only Homeopathy is currently live and active, Allopathic and Ayurvedic ranges are coming soon to Meducil! Do NOT say allopathy or ayurvedic are simply 'not part of our catalog' or 'not supported'; explain that they are coming soon.
 `;
 
     // Fetch from Gemini REST API
