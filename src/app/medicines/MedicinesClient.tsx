@@ -134,7 +134,7 @@ export default function MedicinesClient() {
   }, [searchQuery, isAiEnabled]);
 
   useEffect(() => {
-    if (systemParam && ['Homeopathy', 'Yellowpathy', 'Ayurvedic'].includes(systemParam)) {
+    if (systemParam && ['Homeopathy', 'Allopathy', 'Ayurvedic'].includes(systemParam)) {
       setActiveSystem(systemParam);
     }
   }, [systemParam]);
@@ -186,10 +186,10 @@ export default function MedicinesClient() {
       {/* Search Header Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         {/* System Selector Tab Bar */}
-        <div className="inline-flex p-1.5 bg-white/90 backdrop-blur rounded-2xl border border-slate-200/60 shadow-sm max-w-full">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto sm:inline-flex p-1.5 bg-white/90 backdrop-blur rounded-2xl border border-slate-200/60 shadow-sm max-w-full gap-1 sm:gap-0">
           <button 
             onClick={() => setActiveSystem('Homeopathy')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
               activeSystem === 'Homeopathy' 
                 ? 'bg-slate-900 text-white shadow-md' 
                 : 'text-slate-500 hover:text-slate-800 bg-transparent'
@@ -198,19 +198,19 @@ export default function MedicinesClient() {
             <Leaf className="w-3.5 h-3.5 text-green-500" /> Homeopathy
           </button>
           <button 
-            onClick={() => setActiveSystem('Yellowpathy')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
-              activeSystem === 'Yellowpathy' 
+            onClick={() => setActiveSystem('Allopathy')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
+              activeSystem === 'Allopathy' 
                 ? 'bg-slate-900 text-white shadow-md' 
                 : 'text-slate-500 hover:text-slate-800 bg-transparent'
             }`}
           >
-            <Pill className="w-3.5 h-3.5 text-amber-500" /> Yellowpathy
+            <Pill className="w-3.5 h-3.5 text-amber-500" /> Allopathy
             <span className="bg-amber-100 text-amber-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase leading-none">Soon</span>
           </button>
           <button 
             onClick={() => setActiveSystem('Ayurvedic')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
               activeSystem === 'Ayurvedic' 
                 ? 'bg-slate-900 text-white shadow-md' 
                 : 'text-slate-500 hover:text-slate-800 bg-transparent'
@@ -589,9 +589,9 @@ export default function MedicinesClient() {
         /* Coming Soon Panel */
         <div className="py-16 md:py-24 flex flex-col items-center justify-center text-center bg-white rounded-3xl border border-slate-100 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] max-w-4xl mx-auto w-full">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-inner border ${
-            activeSystem === 'Yellowpathy' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+            activeSystem === 'Allopathy' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
           }`}>
-            {activeSystem === 'Yellowpathy' ? (
+            {activeSystem === 'Allopathy' ? (
               <Pill className="w-8 h-8 animate-bounce text-amber-500" />
             ) : (
               <Leaf className="w-8 h-8 animate-pulse text-emerald-500" />
@@ -601,7 +601,7 @@ export default function MedicinesClient() {
             {activeSystem} Section Coming Soon
           </h2>
           <p className="text-slate-500 max-w-md mb-8 leading-relaxed font-sans text-sm">
-            We are working diligently to launch our new range of premium {activeSystem === 'Yellowpathy' ? 'Allopathic (Modern)' : 'Ayurvedic (Traditional)'} wellness products. We partner directly with verified manufacturers to ensure the highest standard of quality and safety.
+            We are working diligently to launch our new range of premium {activeSystem === 'Allopathy' ? 'Allopathic (Modern)' : 'Ayurvedic (Traditional)'} wellness products. We partner directly with verified manufacturers to ensure the highest standard of quality and safety.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full max-w-md">
             <a 

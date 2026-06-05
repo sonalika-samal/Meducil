@@ -15,7 +15,7 @@ export interface Medicine {
   image: string;
   category: string;
   categories?: string[]; // Support multiple categories
-  system?: string; // Support system filter (Homeopathy, Yellowpathy, Ayurvedic)
+  system?: string; // Support system filter (Homeopathy, Allopathy, Ayurvedic)
   rating: number;
   reviews: number;
   brand: string;

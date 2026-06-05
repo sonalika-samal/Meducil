@@ -287,7 +287,7 @@ export function Header() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Homeopathy', href: '/medicines', hasDropdown: true },
-    { name: 'Yellowpathy', href: '#yellowpathy-soon', isComingSoon: true, systemName: 'Yellowpathy' },
+    { name: 'Allopathy', href: '#allopathy-soon', isComingSoon: true, systemName: 'Allopathy' },
     { name: 'Ayurvedic', href: '#ayurvedic-soon', isComingSoon: true, systemName: 'Ayurvedic' },
     { name: 'Shipping & Delivery', href: '/shipping' },
     { name: 'Contact', href: '/contact' },
@@ -311,7 +311,7 @@ export function Header() {
       >
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
         <Link href="/" className="flex items-center select-none shrink-0">
-          <div className="relative h-16 w-52 sm:w-60 md:w-64 overflow-hidden select-none shrink-0 -my-3 ml-1.5 sm:ml-2 md:ml-0">
+          <div className="relative h-16 w-32 sm:w-48 md:w-56 lg:w-48 xl:w-64 overflow-hidden select-none shrink-0 -my-3 ml-1.5 sm:ml-2 md:ml-0">
             <Image
               src="/logo-main.png"
               alt="Meducil Logo"
@@ -328,7 +328,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden lg:flex items-center lg:space-x-4 xl:space-x-8">
           {navLinks.map((link) => (
             <div
               key={link.name}
@@ -393,8 +393,8 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center space-x-6">
-          <div className={`flex items-center space-x-4 transition-colors duration-300 ${
+        <div className="hidden lg:flex items-center lg:space-x-4 xl:space-x-6">
+          <div className={`flex items-center lg:space-x-3 xl:space-x-4 transition-colors duration-300 ${
             pathname === '/' && !isScrolled ? 'text-white/80' : 'text-slate-600'
           }`}>
             <button className="hover:text-primary-600 transition-colors">
@@ -484,15 +484,22 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          className={`md:hidden p-2 transition-colors duration-300 ${
-            pathname === '/' && !isScrolled ? 'text-white' : 'text-slate-600'
-          }`}
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X /> : <Menu />}
-        </button>
+        {/* Mobile Controls */}
+        <div className="flex items-center gap-2 sm:gap-3 lg:hidden shrink-0">
+          <Link href="/medicines" className="shrink-0">
+            <Button variant="primary" size="sm" className="rounded-full shadow-md text-xs h-9 px-3 sm:px-4">
+              Shop Now
+            </Button>
+          </Link>
+          <button
+            className={`p-2 transition-colors duration-300 shrink-0 ${
+              pathname === '/' && !isScrolled ? 'text-white' : 'text-slate-600'
+            }`}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Nav */}
@@ -502,7 +509,7 @@ export function Header() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-white shadow-xl md:hidden border-t border-slate-100"
+            className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden border-t border-slate-100"
           >
             <div className="flex flex-col p-4 space-y-4">
               {user && (
@@ -913,7 +920,7 @@ export function Header() {
               {comingSoonSystem} Section
             </h3>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              We are working diligently to launch our new range of {comingSoonSystem === 'Yellowpathy' ? 'premium Allopathic (Modern)' : 'authentic Ayurvedic'} wellness products. 
+              We are working diligently to launch our new range of {comingSoonSystem === 'Allopathy' ? 'premium Allopathic (Modern)' : 'authentic Ayurvedic'} wellness products. 
               We partner directly with certified manufacturers and ISO certified labs to ensure the highest standard of potency and quality.
             </p>
 

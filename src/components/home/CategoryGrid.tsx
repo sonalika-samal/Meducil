@@ -19,7 +19,7 @@ const iconMap: Record<string, any> = {
 };
 
 export function CategoryGrid() {
-  const [activeSystem, setActiveSystem] = useState<'homeopathy' | 'yellowpathy' | 'ayurvedic'>('homeopathy');
+  const [activeSystem, setActiveSystem] = useState<'homeopathy' | 'allopathy' | 'ayurvedic'>('homeopathy');
 
   return (
     <section className="py-16 bg-white relative">
@@ -30,16 +30,16 @@ export function CategoryGrid() {
           <p className="text-slate-600 max-w-2xl mx-auto mb-8 font-sans">
             {activeSystem === 'homeopathy' 
               ? 'Explore our range of premium homeopathic medicines curated for specific health concerns.'
-              : activeSystem === 'yellowpathy'
+              : activeSystem === 'allopathy'
               ? 'Our selection of modern Allopathic medicines is coming soon. Stay tuned!'
               : 'Authentic Ayurvedic wellness products and traditional herbal remedies are coming soon.'}
           </p>
 
           {/* Premium Glassmorphic Tab Switcher */}
-          <div className="inline-flex p-1.5 bg-slate-100/85 backdrop-blur rounded-2xl border border-slate-200/50 shadow-inner max-w-full">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto sm:inline-flex p-1.5 bg-slate-100/85 backdrop-blur rounded-2xl border border-slate-200/50 shadow-inner max-w-full gap-1 sm:gap-0">
             <button 
               onClick={() => setActiveSystem('homeopathy')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
                 activeSystem === 'homeopathy' 
                   ? 'bg-white text-slate-900 shadow-md border border-slate-200/10' 
                   : 'text-slate-500 hover:text-slate-800 bg-transparent'
@@ -48,19 +48,19 @@ export function CategoryGrid() {
               <Leaf className="w-3.5 h-3.5 text-green-500" /> Homeopathy
             </button>
             <button 
-              onClick={() => setActiveSystem('yellowpathy')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
-                activeSystem === 'yellowpathy' 
+              onClick={() => setActiveSystem('allopathy')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
+                activeSystem === 'allopathy' 
                   ? 'bg-white text-slate-900 shadow-md border border-slate-200/10' 
                   : 'text-slate-500 hover:text-slate-800 bg-transparent'
               }`}
             >
-              <Pill className="w-3.5 h-3.5 text-amber-500" /> Yellowpathy
+              <Pill className="w-3.5 h-3.5 text-amber-500" /> Allopathy
               <span className="bg-amber-100 text-amber-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase leading-none">Soon</span>
             </button>
             <button 
               onClick={() => setActiveSystem('ayurvedic')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer border-none ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer border-none w-full sm:w-auto ${
                 activeSystem === 'ayurvedic' 
                   ? 'bg-white text-slate-900 shadow-md border border-slate-200/10' 
                   : 'text-slate-500 hover:text-slate-800 bg-transparent'
@@ -99,7 +99,7 @@ export function CategoryGrid() {
               );
             })}
           </div>
-        ) : activeSystem === 'yellowpathy' ? (
+        ) : activeSystem === 'allopathy' ? (
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -108,7 +108,7 @@ export function CategoryGrid() {
             <div className="w-16 h-16 bg-amber-150 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-amber-200/50">
               <Pill className="w-8 h-8 animate-bounce text-amber-500" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3 font-sans">Yellowpathy (Modern Medicine)</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3 font-sans">Allopathy (Modern Medicine)</h3>
             <p className="text-slate-600 leading-relaxed max-w-md mx-auto mb-6 font-sans text-sm">
               We will launch soon! We are establishing partnerships with verified pharmaceutical suppliers to offer you a catalog of safe, reliable, and authentic allopathic medicines.
             </p>

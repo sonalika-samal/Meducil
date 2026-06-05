@@ -73,7 +73,7 @@ const CATEGORIES = [
 
 const BRANDS = ["SBL", "Dr. Reckeweg", "Wheezal", "Bakson", "Allen", "Schwabe India", "Bach Flower"];
 const FORMS = ["Dilution", "Drops", "Tablets", "Tonic", "Biochemic Tablets", "Ointment", "Globales"];
-const SYSTEMS = ["Homeopathy", "Yellowpathy", "Ayurvedic"];
+const SYSTEMS = ["Homeopathy", "Allopathy", "Ayurvedic"];
 
 const SQL_SCHEMA = `-- =========================================================================
 -- MEDUCIL IDEMPOTENT MASTER DATABASE SCHEMA
