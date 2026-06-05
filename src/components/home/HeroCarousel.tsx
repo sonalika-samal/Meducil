@@ -120,7 +120,7 @@ export function HeroCarousel() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
-                className={`text-lg md:text-xl mb-10 ${slides[current].theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}
+                className={`text-lg md:text-xl mb-10 min-h-[56px] md:min-h-[64px] ${slides[current].theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}
               >
                 {slides[current].subtitle}
               </motion.p>
@@ -157,7 +157,7 @@ export function HeroCarousel() {
               {slides[current].title}
             </h1>
             {/* Invisible Subtitle */}
-            <p className="text-lg md:text-xl mb-10 opacity-0 select-none">
+            <p className="text-lg md:text-xl mb-10 opacity-0 select-none min-h-[56px] md:min-h-[64px]">
               {slides[current].subtitle}
             </p>
             
