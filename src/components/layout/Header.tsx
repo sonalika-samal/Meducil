@@ -924,17 +924,18 @@ export function Header() {
               We partner directly with certified manufacturers and ISO certified labs to ensure the highest standard of potency and quality.
             </p>
 
-            <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 mb-6 text-xs text-slate-605 text-left space-y-2">
-              <p className="font-bold text-slate-700">Need immediate help or consultation?</p>
-              <p className="text-slate-500 leading-normal">For custom consultations or direct health concern support, connect with our expert team at Aashutosh Clinic.</p>
-              <a 
-                href="https://wa.me/917846969508" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-primary-600 hover:text-primary-700 font-bold underline gap-1 mt-1"
-              >
-                Chat on WhatsApp &rarr;
-              </a>
+            <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 mb-6 text-sm text-slate-700 text-center">
+              <p className="font-medium">
+                If needed, please{' '}
+                <a 
+                  href="https://wa.me/917846969508" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary-600 hover:text-primary-700 font-bold underline inline-flex items-center gap-1"
+                >
+                  WhatsApp us &rarr;
+                </a>
+              </p>
             </div>
 
             <Button
