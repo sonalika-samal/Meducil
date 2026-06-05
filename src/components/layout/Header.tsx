@@ -556,7 +556,7 @@ export function Header() {
                   ) : (
                     <Link
                       href={link.href}
-                      onClick={() => !link.hasDropdown && setMobileMenuOpen(false)}
+                      onClick={() => setMobileMenuOpen(false)}
                       className={`p-3 rounded-xl text-base font-medium flex justify-between items-center ${
                         pathname === link.href || (link.hasDropdown && pathname.startsWith('/medicines'))
                           ? 'bg-primary-50 text-primary-600' 
