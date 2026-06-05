@@ -227,7 +227,7 @@ export default function MedicinesClient() {
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
           <button 
             onClick={() => setIsPrescriptionModalOpen(true)}
-            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer relative group"
+            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer group"
             title="Search by prescription/label image"
           >
             <Camera className="w-4 h-4" />
@@ -256,7 +256,7 @@ export default function MedicinesClient() {
                 <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                 <button 
                   onClick={() => setIsPrescriptionModalOpen(true)}
-                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer relative group"
+                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer group"
                   title="Search by prescription/label image"
                 >
                   <Camera className="w-4 h-4" />
