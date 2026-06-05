@@ -632,7 +632,7 @@ export default function MedicinesClient() {
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs shadow-sm hover:shadow transition-all gap-2 text-decoration-none"
             >
-              Consult with Doctor
+              WhatsApp Us
             </a>
             <button 
               onClick={() => setActiveSystem('Homeopathy')}
