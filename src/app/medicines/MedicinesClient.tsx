@@ -34,6 +34,20 @@ export default function MedicinesClient() {
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imageSuggestions, setImageSuggestions] = useState<Array<{ name: string; reason: string }> | null>(null);
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState('Search all medicines or concerns...');
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 480) {
+        setPlaceholderText('Search medicines...');
+      } else {
+        setPlaceholderText('Search all medicines or concerns...');
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const analyzeImageBase64 = async (base64: string, mimeType: string) => {
     setIsAnalyzingImage(true);
@@ -205,10 +219,10 @@ export default function MedicinesClient() {
         <div className="relative w-full md:w-80">
           <input 
             type="text" 
-            placeholder="Search all medicines or concerns..."
+            placeholder={placeholderText}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs font-sans transition-all shadow-sm"
+            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-[11px] sm:text-xs font-sans transition-all shadow-sm"
           />
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
           <button 
@@ -237,7 +251,7 @@ export default function MedicinesClient() {
                   placeholder="Search medicines..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs sm:text-sm transition-all"
                 />
                 <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                 <button 

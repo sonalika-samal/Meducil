@@ -44,6 +44,22 @@ export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const [homeQuery, setHomeQuery] = useState('');
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState('Search medicines by name or health concern...');
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 375) {
+        setPlaceholderText('Search medicines...');
+      } else if (window.innerWidth < 640) {
+        setPlaceholderText('Search medicines or concerns...');
+      } else {
+        setPlaceholderText('Search medicines by name or health concern...');
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handlePrescriptionCapture = (base64: string, mimeType: string) => {
     sessionStorage.setItem('meducil_pending_prescription', base64);
@@ -147,10 +163,10 @@ export function HeroCarousel() {
             <div className="relative max-w-md w-full mb-2 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg pointer-events-auto">
               <input
                 type="text"
-                placeholder="Search medicines by name or health concern..."
+                placeholder={placeholderText}
                 value={homeQuery}
                 onChange={(e) => setHomeQuery(e.target.value)}
-                className="bg-transparent text-white placeholder-white/75 text-xs px-4 py-2 w-full focus:outline-none border-none font-sans"
+                className="bg-transparent text-white placeholder-white/75 text-[11px] sm:text-xs px-3 sm:px-4 py-2 w-full focus:outline-none border-none font-sans"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && homeQuery.trim()) {
                     window.location.href = `/medicines?search=${encodeURIComponent(homeQuery.trim())}`;
