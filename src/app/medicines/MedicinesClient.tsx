@@ -224,10 +224,10 @@ export default function MedicinesClient() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-[11px] sm:text-xs font-sans transition-all shadow-sm"
           />
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <button 
             onClick={() => setIsPrescriptionModalOpen(true)}
-            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer group"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer group"
             title="Search by prescription/label image"
           >
             <Camera className="w-4 h-4" />
@@ -253,10 +253,10 @@ export default function MedicinesClient() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-xs sm:text-sm transition-all"
                 />
-                <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <button 
                   onClick={() => setIsPrescriptionModalOpen(true)}
-                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer group"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer group"
                   title="Search by prescription/label image"
                 >
                   <Camera className="w-4 h-4" />
