@@ -146,6 +146,26 @@ export default function MedicinesClient() {
     }
   }, [searchParam]);
 
+  // Handle initial hash routing & hashchange events
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const id = hash.replace('#', '');
+        setTimeout(() => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setActiveCategory(id);
+          }
+        }, 300);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   // Handle scroll spy
   useEffect(() => {
     if (activeSystem !== 'Homeopathy') return;

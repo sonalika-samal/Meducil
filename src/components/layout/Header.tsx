@@ -294,12 +294,13 @@ export function Header() {
   ];
 
   const medicineCategories = [
-    { name: 'Wellness', href: '/medicines?category=Wellness' },
-    { name: 'Cold & Cough', href: '/medicines?category=Cold & Cough' },
-    { name: 'Gastric', href: '/medicines?category=Gastric' },
-    { name: 'Pain Relief', href: '/medicines?category=Pain Relief' },
-    { name: 'Skin Care', href: '/medicines?category=Skin Care' },
-    { name: "Women's Health", href: "/medicines?category=Women's Health" },
+    { name: 'Cold & Cough', href: '/medicines#cold-cough-allergy' },
+    { name: 'Wellness', href: '/medicines#wellness-ocd-anxiety' },
+    { name: 'Skin Care', href: '/medicines#beauty-skin-hair-care' },
+    { name: 'Fever & Acute', href: '/medicines#fever-acute-care' },
+    { name: 'Gastric', href: '/medicines#digestive-liver-care' },
+    { name: 'Pain Relief', href: '/medicines#joint-pain-rheumatism' },
+    { name: "Women's Health", href: '/medicines#womens-wellness' },
   ];
 
   return (
