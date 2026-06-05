@@ -23,7 +23,7 @@ const slides = [
     title: "Flat 20% Off on Wellness Kits",
     subtitle: "Boost your immunity naturally. Limited time offer.",
     cta: "View Offers",
-    href: "/medicines?category=Wellness",
+    href: "/medicines#wellness-ocd-anxiety",
     bgClass: "bg-secondary-600",
     image: "https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?w=1200&q=80",
     theme: "dark"
