@@ -454,14 +454,14 @@ export default function MedicinesClient() {
                   )
                 )}
 
-                {/* Pharmacist Advice / Smart Explanation Banner */}
+                {/* AI Search Assistant / Smart Explanation Banner */}
                 {isAiEnabled && aiSearchResults && aiSearchResults.explanation && (
                   <div className="mt-3 p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl flex items-start gap-3 shadow-[0_2px_10px_rgb(22,163,74,0.03)] backdrop-blur-sm">
                     <div className="w-8 h-8 rounded-xl bg-emerald-100/80 flex items-center justify-center text-emerald-700 flex-shrink-0">
-                      <span className="text-base leading-none">👨‍⚕️</span>
+                      <span className="text-base leading-none">✨</span>
                     </div>
                     <div className="flex-grow">
-                      <h4 className="text-xs font-bold text-slate-800 font-sans mb-0.5">Pharmacist Advice</h4>
+                      <h4 className="text-xs font-bold text-slate-800 font-sans mb-0.5">AI Search Assistant</h4>
                       <p className="text-[11px] text-slate-600 leading-relaxed font-sans">{aiSearchResults.explanation}</p>
                     </div>
                   </div>
