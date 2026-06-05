@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import Link from 'next/link';
+import { PrescriptionCaptureModal } from '../ui/PrescriptionCaptureModal';
 
 const slides = [
   {
@@ -42,24 +43,12 @@ const slides = [
 export function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const [homeQuery, setHomeQuery] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      sessionStorage.setItem('meducil_pending_prescription', base64);
-      sessionStorage.setItem('meducil_pending_mime', file.type);
-      window.location.href = `/medicines?image-search=true`;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
+  const handlePrescriptionCapture = (base64: string, mimeType: string) => {
+    sessionStorage.setItem('meducil_pending_prescription', base64);
+    sessionStorage.setItem('meducil_pending_mime', mimeType);
+    window.location.href = `/medicines?image-search=true`;
   };
 
   useEffect(() => {
@@ -74,14 +63,7 @@ export function HeroCarousel() {
 
   return (
     <div className="relative h-[80vh] min-h-[600px] w-full overflow-hidden bg-slate-900 pt-20">
-      {/* Hidden File Input for Prescription Scanning */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        accept="image/*" 
-        className="hidden" 
-        onChange={handleFileChange} 
-      />
+
 
       <AnimatePresence initial={false} mode="wait">
         <motion.div
@@ -162,7 +144,7 @@ export function HeroCarousel() {
             </p>
             
             {/* The actual interactive search bar */}
-            <div className="relative max-w-md w-full mb-8 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg pointer-events-auto">
+            <div className="relative max-w-md w-full mb-2 bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-2xl flex items-center shadow-lg pointer-events-auto">
               <input
                 type="text"
                 placeholder="Search medicines by name or health concern..."
@@ -176,11 +158,15 @@ export function HeroCarousel() {
                 }}
               />
               <button 
-                onClick={triggerFileSelect}
-                className="p-2 text-white/60 hover:text-white rounded-xl hover:bg-white/10 transition-all border-none bg-transparent cursor-pointer flex-shrink-0 mr-1"
+                onClick={() => setIsPrescriptionModalOpen(true)}
+                className="p-2 text-white/60 hover:text-white rounded-xl hover:bg-white/10 transition-all border-none bg-transparent cursor-pointer flex-shrink-0 mr-1 relative group"
                 title="Search by prescription/label image"
               >
                 <Camera className="w-4 h-4" />
+                <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-500"></span>
+                </span>
               </button>
               <Button
                 onClick={() => {
@@ -192,6 +178,17 @@ export function HeroCarousel() {
               >
                 Search
               </Button>
+            </div>
+
+            {/* Feature Highlight Helper Text */}
+            <div className="text-[11px] text-white/85 font-semibold font-sans flex items-center gap-2 mb-8 ml-2 pointer-events-auto select-none">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+              </span>
+              <span>
+                Tip: Click the camera icon to search by uploading a prescription or medicine label photo!
+              </span>
             </div>
 
             {/* Invisible CTA Button to align center spacing perfectly */}
@@ -230,6 +227,12 @@ export function HeroCarousel() {
           />
         ))}
       </div>
+
+      <PrescriptionCaptureModal 
+        isOpen={isPrescriptionModalOpen}
+        onClose={() => setIsPrescriptionModalOpen(false)}
+        onCapture={handlePrescriptionCapture}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useMedicines } from '@/lib/data/medicineStore';
 import { ProductCard } from '@/components/medicines/ProductCard';
 import { ShieldPlus, Thermometer, Leaf, Activity, Zap, Pill, Heart, Droplets, Sparkles, Search, SlidersHorizontal, ArrowRight, Camera } from 'lucide-react';
 import Link from 'next/link';
+import { PrescriptionCaptureModal } from '@/components/ui/PrescriptionCaptureModal';
 
 const iconMap: Record<string, any> = {
   "cold-cough-allergy": ShieldPlus,
@@ -32,7 +33,7 @@ export default function MedicinesClient() {
 
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imageSuggestions, setImageSuggestions] = useState<Array<{ name: string; reason: string }> | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
 
   const analyzeImageBase64 = async (base64: string, mimeType: string) => {
     setIsAnalyzingImage(true);
@@ -60,21 +61,7 @@ export default function MedicinesClient() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      analyzeImageBase64(base64, file.type);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
 
   useEffect(() => {
     const isImageSearch = searchParams.get('image-search');
@@ -174,14 +161,7 @@ export default function MedicinesClient() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Hidden File Input for Prescription Scanning */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        accept="image/*" 
-        className="hidden" 
-        onChange={handleFileChange} 
-      />
+
 
       {/* Search Header Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -232,11 +212,15 @@ export default function MedicinesClient() {
           />
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
           <button 
-            onClick={triggerFileSelect}
-            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer"
+            onClick={() => setIsPrescriptionModalOpen(true)}
+            className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all border-none bg-transparent cursor-pointer relative group"
             title="Search by prescription/label image"
           >
             <Camera className="w-4 h-4" />
+            <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-500"></span>
+            </span>
           </button>
         </div>
       </div>
@@ -257,11 +241,15 @@ export default function MedicinesClient() {
                 />
                 <Search className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                 <button 
-                  onClick={triggerFileSelect}
-                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer"
+                  onClick={() => setIsPrescriptionModalOpen(true)}
+                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer relative group"
                   title="Search by prescription/label image"
                 >
                   <Camera className="w-4 h-4" />
+                  <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-500"></span>
+                  </span>
                 </button>
               </div>
 
@@ -621,6 +609,12 @@ export default function MedicinesClient() {
           </div>
         </div>
       )}
+
+      <PrescriptionCaptureModal 
+        isOpen={isPrescriptionModalOpen}
+        onClose={() => setIsPrescriptionModalOpen(false)}
+        onCapture={analyzeImageBase64}
+      />
     </div>
   );
 }
